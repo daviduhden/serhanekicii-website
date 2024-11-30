@@ -61,7 +61,3 @@ chmod +x ./gen
 ```
 ./gen
 ```
-
-## TODO
-
-- Containerization
