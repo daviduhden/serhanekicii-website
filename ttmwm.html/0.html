@@ -1,13 +1,44 @@
 <article>
-<h2>${title}</h2>
+  <h2>${title}</h2>
 
-<!-- MARKDOWN -->
+  <!-- MARKDOWN -->
 
-<div id="article-timestamp">
-	<p><strong>This page;</strong></p>
-	<p><strong>Created on</strong> <time datetime="${date_created}">
-			${date_created}</time></p>
-	<p><strong>Last modification on </strong><time datetime="${date_updated}">
-		${date_updated}</time></p>
-</div>
+  <!-- Add a horizontal line here -->
+  <hr />
+
+  <div id="article-timestamp">
+    <!-- Add creator/author details here -->
+    <p>
+      <strong>Created by:</strong>
+      ${git_creation_author}
+    </p>
+    <p>
+      <strong>Last edited by:</strong>
+      ${git_modification_author}
+    </p>
+    <p>
+      <strong>Created on:</strong>
+      <time datetime="${date_created}">${date_created}</time>
+    </p>
+    <p>
+      <a target="_blank" href="${git_creation_commit_link}">
+        Click to view creation commit ${git_creation_hash}
+      </a>
+    </p>
+    <p>
+      <strong>Last modification on:</strong>
+      <time datetime="${date_updated}">${date_updated}</time>
+    </p>
+    <p>
+      <a target="_blank" href="${git_modification_commit_link}">
+        Click to view latest commit modified this page ${git_modification_hash}
+      </a>
+    </p>
+  </div>
+  <div id="article-commit-history">
+    <p><strong>Commit history for this page:</strong></p>
+    <ul>
+      ${all_commits}
+    </ul>
+  </div>
 </article>

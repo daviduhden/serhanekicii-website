@@ -1,23 +1,32 @@
 :root {
-  --behind: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(36,35,35,1) 54%, rgba(63,70,82,1) 100%) fixed;
-  --main-bg-color: #222;
-  --main-fg-color: white;
-  --main-border-color: white;
-  --code-bg-color: #282828;
-  --code-selection-bg-color: #7b7b7b;
-  --code-fg-color: white;
-  --link: cornsilk;
-  --header: beige;
+	--behind: linear-gradient(90deg, rgba(0, 0, 0, 1) 0%, rgba(36, 35, 35, 1) 54%, rgba(63, 70, 82, 1) 100%) fixed;
+	--main-bg-color: #222;
+	--main-fg-color: white;
+	--main-border-color: white;
+	--code-bg-color: #282828;
+	--code-selection-bg-color: #7b7b7b;
+	--code-fg-color: white;
+	--link: cornsilk;
+	--header: beige;
 }
 
 body {
 	background: var(--behind);
 	color: var(--main-fg-color);
 	margin: 0;
-	padding: 1ex; } /* HTML5 semantic tags: some (older) browsers display this inline by default */ article, figcaption, figure, header, main, nav {
+	padding: 1ex;
+}
+
+/* HTML5 semantic tags: some (older) browsers display this inline by default */
+article,
+figcaption,
+figure,
+header,
+main,
+nav {
 	display: block;
 	font-family: "Garamond", Georgia, serif, "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji"
-	line-height: 1.5;
+		line-height: 1.5;
 }
 
 header {
@@ -37,8 +46,8 @@ footer a {
 
 footer ul {
 	list-style-type: none;
-	margin:0;
-	padding:0;
+	margin: 0;
+	padding: 0;
 }
 
 footer ul li img {
@@ -66,7 +75,8 @@ table {
 	background: var(--code-bg-color);
 }
 
-table, img {
+table,
+img {
 	border: 0;
 }
 
@@ -74,8 +84,10 @@ table tr td {
 	padding: 2px 10px 2px 0px;
 }
 
-table:not(#menu), th, td:not(#links, #links-contact) {
-    border: 1px solid var(--code-fg-color)!important;
+table:not(#menu),
+th,
+td:not(#links, #links-contact) {
+	border: 1px solid var(--code-fg-color) !important;
 }
 
 code {
@@ -100,7 +112,7 @@ pre code::selection {
 	background: var(--main-bg-color);
 }
 
-article h2{
+article h2 {
 	text-align: center;
 }
 
@@ -108,7 +120,12 @@ header h1 {
 	font-size: 45px;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
 	color: var(--header);
 }
 
@@ -125,7 +142,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .hoverdiv:hover .hover_elmnt {
-	display:none;
+	display: none;
 }
 
 .hoverspan:hover .hidden_elmnt {
@@ -133,19 +150,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .hoverspan:hover .hover_elmnt {
-	display:none;
+	display: none;
 }
 
 #article-timestamp {
-    text-align: center;
-    margin-top: 1em;
-    margin-bottom: 1em;
-    border: 1px solid var(--main-fg-color);
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+
+#article-commit-history {
+	margin-top: 1em;
+	margin-bottom: 1em;
 }
 
 #menu td {
 	padding: 1ex 0;
 }
+
 #main {
 	border-top: 3px solid var(--main-border-color);
 	border-bottom: 3px solid var(--main-border-color);
@@ -171,6 +192,7 @@ h1, h2, h3, h4, h5, h6 {
 	padding: 5px;
 	background: var(--behind);
 }
+
 #menu a:hover {
 	background: var(--main-fg-color);
 	color: var(--main-bg-color);
