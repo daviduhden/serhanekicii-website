@@ -1,10 +1,14 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches:
-      - master
-  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Prettier
+      - ShellCheck
+      - shfmt
+      - Stylelint
+    types:
+      - completed
 
 jobs:
   build-and-push:
