@@ -44,7 +44,8 @@ This ~200-line `gen` POSIX-compliant shell script is a flexible static site gene
 - **[shfmt](https://github.com/mvdan/sh#shfmt)**: Formats shell scripts for consistent code style.
 - **[shellcheck](https://github.com/koalaman/shellcheck)**: Lints shell scripts to detect errors and enforce best practices.
 - **[pre-commit](https://pre-commit.com/)**: Manages and runs hooks in Git repositories, ensuring code quality.
-- **[Prettier](https://prettier.io/)**: Formats HTML files for consistent and readable output.
+- **[prettier](https://prettier.io/)**: Formats HTML files for consistent and readable output.
+- **[stylelint](https://stylelint.io/)**: Lints CSS and enforces consistent styling in stylesheets.
 
 ## Build Instructions
 
