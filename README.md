@@ -65,5 +65,3 @@ chmod +x ./gen
 ## TODO
 
 - Containerization
-- Linting and formatting Action
-- shellcheck Action
