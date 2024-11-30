@@ -1,4 +1,4 @@
-# Serhan Ekici's Webpage
+# Serhan Ekici's Website
 
 ## Overview
 
