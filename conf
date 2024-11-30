@@ -19,6 +19,7 @@ to_build="
 ./rss.xml
 ./contact.html
 ./mailserver-openbsd.html
+./wireguard-openbsd.html
 ./ttmwm.html
 ./people.html
 "
