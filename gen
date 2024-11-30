@@ -177,7 +177,7 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
     fi
 
     if [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ]; then
-        sed -i "/^<!-- POSTS -->/a <item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>$site_description</description>\n</item>" "$BUILD_DIR/rss.xml"
+        sed -i "/^<!-- POSTS -->/a <item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>$description</description>\n</item>" "$BUILD_DIR/rss.xml"
         printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
     fi
 
