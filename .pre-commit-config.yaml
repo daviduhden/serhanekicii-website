@@ -1,0 +1,30 @@
+repos:
+  - repo: local
+    hooks:
+      - id: shfmt
+        name: shfmt
+        entry: shfmt
+        language: system
+        args: ["-p", "-i", "4", "-ci", "-bn", "-sr", "-d"]
+        files: gen
+
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck
+        language: system
+        args: ["-x"]
+        files: gen
+
+      - id: prettier
+        name: prettier
+        entry: prettier
+        language: system
+        args: ["--check"]
+        files: \.(html|css|md)$
+
+      - id: stylelint
+        name: stylelint
+        entry: stylelint
+        language: system
+        args: []
+        files: \.(html|css)$

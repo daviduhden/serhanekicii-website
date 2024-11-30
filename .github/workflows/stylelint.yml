@@ -1,0 +1,37 @@
+name: Stylelint
+
+on:
+  # Run the workflow on push and pull request events to specific branches
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  stylint:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 23
+
+      # Install Stylelint and Stylelint-Config-Standard
+      - name: Install Stylelint and Config
+        run: |
+          npm install stylelint stylelint-config-standard stylelint-config-html stylelint-prettier --save-dev
+
+      # Run Stylelint
+      - name: Run Stylelint
+        run: npx stylelint "**/*.css"

@@ -2,8 +2,8 @@
 
 CONF_FILE=./conf
 GITHUB_REPO="website"
-GITHUB_USER="serhanekicii"	# Github username
-GITHUB_TOKEN=""			# Github Personal Access Token (if repo is not public)
+GITHUB_USER="serhanekicii" # Github username
+GITHUB_TOKEN=""            # Github Personal Access Token (if repo is not public)
 
 safe_replace() {
     DELIM=$(printf "\001") # Rare sed delimiter to use
@@ -22,7 +22,7 @@ get_git_info() {
     # shellcheck disable=SC2034
     git_creation_author=$(echo "$git_creation_info" | cut -d'|' -f3)
     # Convert creation date into RSS format
-    git_creation_date=$( [ -n "$git_creation_date" ] && date --date="$git_creation_date" +"%a, %d %b %Y %H:%M:%S %z" || echo "" )
+    git_creation_date=$([ -n "$git_creation_date" ] && date --date="$git_creation_date" +"%a, %d %b %Y %H:%M:%S %z" || echo "")
 
     # Get latest modification commit info
     # shellcheck disable=SC2034
@@ -32,7 +32,7 @@ get_git_info() {
     # shellcheck disable=SC2034
     git_modification_author=$(echo "$git_modification_info" | cut -d'|' -f3)
     # Convert modification date into RSS format
-    git_modification_date=$( [ -n "$git_modification_date" ] && date --date="$git_modification_date" +"%a, %d %b %Y %H:%M:%S %z" || echo "" )
+    git_modification_date=$([ -n "$git_modification_date" ] && date --date="$git_modification_date" +"%a, %d %b %Y %H:%M:%S %z" || echo "")
 
     # Construct base commit URL
     commit_base_url="https://github.com/$GITHUB_USER/$GITHUB_REPO/commit"
@@ -60,8 +60,8 @@ get_git_info() {
 # Function to check if a command exists
 check_command() {
     cmd="$1"
-    command -v "$cmd" >/dev/null 2>&1 || {
-	printf "Error: %s is not installed or not in PATH. Please install it before running the script.\n" "$cmd"
+    command -v "$cmd" > /dev/null 2>&1 || {
+        printf "Error: %s is not installed or not in PATH. Please install it before running the script.\n" "$cmd"
         exit 1
     }
 }
@@ -99,6 +99,7 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
     file=$(realpath "$file")
     file_name=$(basename "$file")
     file_ext="${file_name##*.}"
+    file_wext=${file_name%.*}
 
     [ ! -d "$file" ] && {
         printf "ERROR: %s doesn't exist.\n" "$file"
@@ -113,9 +114,7 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
     [ -f "$file/conf" ] && . "$file/conf"
 
     # Write default header.
-    if [ "$file_ext" = "html" ] && { [ -z "$add_header" ] || [ "$add_header" = "true" ]; }; then
-        cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
-    fi
+    [ "$file_ext" = "html" ] && { [ -z "$add_header" ] || [ "$add_header" = "true" ]; } && cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
 
     # Write ext files if exist
     for ext_file in "$file"/*."$file_ext"; do
@@ -123,19 +122,24 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
     done
 
     # Convert and write markdown file if `is_markdown` is true
-    if [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ]; then
+    [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
         for md in "$(realpath "$file")"/*.md; do
             converted_md=$(pandoc "$md")
-            echo "$converted_md" |
-                sed -i "/<!-- MARKDOWN -->/r /dev/stdin" "$BUILD_DIR/$file_name"
+            echo "$converted_md" \
+                | sed -i "/<!-- MARKDOWN -->/r /dev/stdin" "$BUILD_DIR/$file_name"
             printf "Markdown file %s successfully converted to HTML using Pandoc and aggregated into %s\n" "$BUILD_DIR/$file_name" "$md"
         done
-    fi
+    }
+
+    for css in "$(realpath "$file")"/*.css; do
+        [ -f "$css" ] || continue # Skip if no CSS files found
+        cat "$css" >> "$BUILD_DIR/$file_wext.css"
+        sed -i "/<head>/a \    <link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">" "$BUILD_DIR/$file_name"
+        printf "Aggregated %s into %s\n" "$css" "$BUILD_DIR/$file_wext.css"
+    done
 
     # Write default footer.
-    if [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; }; then
-        cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
-    fi
+    [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; } && cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
 
     # Process placeholders
     placeholders=$(awk -v RS='\\${[^}]*}' 'RT{gsub(/^\${|}$/,"",RT);print RT}' "$BUILD_DIR/$file_name" | sort -u)
@@ -148,12 +152,12 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
 
         # Handle git-derived values or warn about undefined placeholders
         case "$key" in
-            date_created|date_updated)
-                if [ -z "$val" ]; then
+            date_created | date_updated)
+                [ -z "$val" ] && {
                     val=$([ "$key" = "date_created" ] && echo "$git_creation_date" || echo "$git_modification_date")
                     log_msg=$([ "$key" = "date_created" ] && echo "creation date" || echo "modification date")
                     printf "Replacing placeholder/key \"%s\" with git-derived %s => \"%s\" in %s (value not available in config to override)\n" "$key" "$log_msg" "$val" "$file_name"
-                fi
+                }
                 ;;
             *)
                 [ -z "$val" ] && printf "WARNING: Placeholder \"%s\" has no value.\n" "$key"
@@ -171,15 +175,15 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
     date_created=${date_created:-""}
     title=${title:-"Untitled"}
 
-    if [ "$file_name" != "index.html" ] && [ "$link_index" = "true" ]; then
+    [ "$file_name" != "index.html" ] && [ "$link_index" = "true" ] && {
         sed -i "/^    <!-- POSTS -->/a <li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" "$BUILD_DIR/index.html"
         printf "File linked in index.html => %s\n" "$site_url/$file_name"
-    fi
+    }
 
-    if [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ]; then
-        sed -i "/^<!-- POSTS -->/a <item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>$description</description>\n</item>" "$BUILD_DIR/rss.xml"
+    [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] && {
+        sed -i "/^<!-- POSTS -->/a <item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>${description:-""}</description>\n</item>" "$BUILD_DIR/rss.xml"
         printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
-    fi
+    }
 
     printf "Finished generating %s\n\n" "$BUILD_DIR/$file_name"
 done
@@ -188,9 +192,9 @@ done
 COMMITS_NUM=10
 commit_history=$(curl --silent -u "$GITHUB_USER":"$GITHUB_TOKEN" \
     -H "Accept: application/vnd.github.v3+json" \
-    "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/commits" |
-    jq '.[] | "|\(.commit.author.date)|\(.commit.message)|\(.html_url)|" | gsub("[\n\t]"; "")' |
-    head -$COMMITS_NUM)
+    "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/commits" \
+    | jq '.[] | "|\(.commit.author.date)|\(.commit.message)|\(.html_url)|" | gsub("[\n\t]"; "")' \
+    | head -$COMMITS_NUM)
 
 # Reverse order without tac or tail -r nonsense
 commit_history=$(echo "$commit_history" | awk '{a[NR]=$0} END {for(i=NR; i>=1; i--) printf("%s\n",a[i]);}')
@@ -203,7 +207,7 @@ echo "$commit_history" | while read -r line; do
     commit_msg=$(echo "$line" | awk -F "|" '{print $3}')
     commit_url=$(echo "$line" | awk -F "|" '{print $4}')
 
-    sed -i "/^    <!-- GIT -->/a <li><time datetime=$date>$date</time> &ndash; <a target=_blank href=$commit_url>$commit_msg</a></li>" "$BUILD_DIR/index.html"
+    sed -i "/^    <!-- GIT -->/a <li><time datetime=\"$date\">$date</time> &ndash; <a target=\"_blank\" href=\"$commit_url\">$(echo "$commit_msg" | sed 's/[&/\"]/\\\&/g')</a></li>" "$BUILD_DIR/index.html"
 done
 
 # Copy CSS and images

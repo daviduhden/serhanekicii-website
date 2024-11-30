@@ -1,0 +1,42 @@
+#init {
+  margin-bottom: 50px;
+}
+
+#init img {
+  max-height: 200px;
+  max-width: 200px;
+  padding: 20px;
+  float: left;
+}
+
+#posts,
+#commits {
+  background: var(--code-bg-color);
+  border-radius: 10px;
+}
+
+#posts h2,
+#commits h2 {
+  padding-top: 10px;
+  padding-left: 10px;
+  text-align: center;
+}
+
+#posts ul,
+#commits ul {
+  padding-bottom: 10px;
+  padding-left: 10px;
+}
+
+#posts li,
+#commits li {
+  list-style-position: inside;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#posts li time,
+#commits li time {
+  font-family: monospace;
+}
