@@ -15,19 +15,19 @@ get_git_info() {
 
     git_info=$(git log --format='%ad|%h|%an|%s' --date=rfc -- "$target")
     # Get creation commit info (earliest commit introducing the file)
-    git_creation_info=$(echo "$git_info" | tail -1)
-    git_creation_hash=$(echo "$git_creation_info" | cut -d'|' -f2)
-    git_creation_date=$(echo "$git_creation_info" | cut -d'|' -f1)
+    git_creation_info=$(printf "%s" "$git_info" | tail -1)
+    git_creation_hash=$(printf "%s" "$git_creation_info" | cut -d'|' -f2)
+    git_creation_date=$(printf "%s" "$git_creation_info" | cut -d'|' -f1)
     # shellcheck disable=SC2034
-    git_creation_author=$(echo "$git_creation_info" | cut -d'|' -f3)
+    git_creation_author=$(printf "%s" "$git_creation_info" | cut -d'|' -f3)
 
     # Get latest modification commit info
     # shellcheck disable=SC2034
-    git_modification_info=$(echo "$git_info" | head -1)
-    git_modification_hash=$(echo "$git_modification_info" | cut -d'|' -f2)
-    git_modification_date=$(echo "$git_modification_info" | cut -d'|' -f1)
+    git_modification_info=$(printf "%s" "$git_info" | head -1)
+    git_modification_hash=$(printf "%s" "$git_modification_info" | cut -d'|' -f2)
+    git_modification_date=$(printf "%s" "$git_modification_info" | cut -d'|' -f1)
     # shellcheck disable=SC2034
-    git_modification_author=$(echo "$git_modification_info" | cut -d'|' -f3)
+    git_modification_author=$(printf "%s" "$git_modification_info" | cut -d'|' -f3)
 
     # Construct base commit URL
     commit_base_url="https://github.com/$GITHUB_USER/$GITHUB_REPO/commit"
@@ -87,7 +87,7 @@ PICS_DIR=${PICS_DIR:-"./pics"}
 [ -d "$BUILD_DIR" ] && rm -rf "$BUILD_DIR" # Delete build dir if exist
 mkdir -p "$BUILD_DIR"
 
-for file in $(echo "$to_build" | sed '/^$/d'); do
+for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
     ( # Subshell to maintain file-specific variables.
         file=$(realpath "$file")
         file_name=$(basename "$file")
@@ -118,7 +118,7 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
         [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
             for md in "$(realpath "$file")"/*.md; do
                 converted_md=$(pandoc "$md")
-                echo "$converted_md" \
+                printf "%s\n" "$converted_md" \
                     | sed -i "/<!-- MARKDOWN -->/r /dev/stdin" "$BUILD_DIR/$file_name"
                 printf "Markdown file %s successfully converted to HTML using Pandoc and aggregated into %s\n" "$BUILD_DIR/$file_name" "$md"
             done
@@ -147,8 +147,8 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
             case "$key" in
                 date_created | date_updated)
                     [ -z "$val" ] && {
-                        val=$([ "$key" = "date_created" ] && echo "$git_creation_date" || echo "$git_modification_date")
-                        log_msg=$([ "$key" = "date_created" ] && echo "creation date" || echo "modification date")
+                        val=$([ "$key" = "date_created" ] && printf "%s" "$git_creation_date" || printf "%s" "$git_modification_date")
+                        log_msg=$([ "$key" = "date_created" ] && printf "%s" "creation date" || printf "%s" "modification date")
                         printf "Replacing placeholder/key \"%s\" with git-derived %s => \"%s\" in %s (value not available in config to override)\n" "$key" "$log_msg" "$val" "$file_name"
                     }
                     ;;
@@ -184,13 +184,13 @@ done
 
 # This will get info for the whole repository this time.
 get_git_info "."
-commit_history=$(echo "$git_info" | head -"$COMMITS_NUM")
+commit_history=$(printf "%s" "$git_info" | head -"$COMMITS_NUM")
 
 # Process each commit history line, in reverse order.
-echo "$commit_history" | awk '{lines[NR]=$0} END {for (i=NR; i>0; i--) print lines[i]}' | while read -r line; do
-    commit_date=$(echo "$line" | cut -d'|' -f 1)
-    commit_msg=$(echo "$line" | cut -d'|' -f 4)
-    commit_hash=$(echo "$line" | cut -d'|' -f 2)
+printf "%s" "$commit_history" | awk '{lines[NR]=$0} END {for (i=NR; i>0; i--) print lines[i]}' | while read -r line; do
+    commit_date=$(printf "%s" "$line" | cut -d'|' -f 1)
+    commit_msg=$(printf "%s" "$line" | cut -d'|' -f 4)
+    commit_hash=$(printf "%s" "$line" | cut -d'|' -f 2)
     commit_url=$commit_base_url/$commit_hash
 
     # Add commit entry to the index.html file (or any other target)
