@@ -2,13 +2,13 @@
 
 ## Overview
 
-This ~200-line `gen` POSIX-compliant shell script is a flexible static site generator designed to transform my content into a fully functional and transparent website. The generator's core philosophy is **file-based modularity**, where every piece of content in a directory generated into one file. It combines dynamic content generation with version control metadata, to generate a Git-driven static website.
+This ~200-line POSIX-compliant shell script is a flexible static site generator designed to transform content into a fully functional and transparent website. The generator's core philosophy is file-based modularity, where each piece of content in a directory is generated into a single file. It combines dynamic content generation with version control metadata to create a Git-driven static website.
 
 ## Features
 
 - **D.R.Y. - Do Not Repeat Yourself**
 
-  - **Configuration Management**: The script uses a global conf file to define global settings, such as (`BUILD_DIR`, `CSS_FILE`, `PICS_DIR`, `site_lang`, `default_footer`, `site_description`), and values for custom global variables. Individual files can also include their own `conf` file to override global variables or file-specific Git metadata.
+  - **Configuration Management**: The script uses a global conf file to define global settings, such as (`BUILD_DIR`, `CSS_FILE`, `PICS_DIR`, `site_lang`, `default_footer`, `site_description`...), and other globally defined custom variables. Individual files can also include their own `conf` file to override global variables or file-specific Git metadata.
   - **Dynamic Placeholder Replacement**: Placeholders like `${author_name}`, `${date_created}`, `${date_modified}`, and `${title}` are dynamically replaced with:
     - **Git Metadata**: For values like creation and modification timestamps, and author names.
     - **Custom Variables**: Defined in either the global `conf` file or file-specific `conf` files.
