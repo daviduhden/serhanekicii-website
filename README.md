@@ -36,7 +36,7 @@ This ~200-line `gen` POSIX-compliant shell script is a flexible static site gene
 ## Dependencies
 
 - **POSIX Utilities**:
-  - `sed`, `awk`, `realpath`: For text processing and file path resolution.
+  - `sed`, `realpath`, `printf`, `tr`, `cut`, `grep` `tail` `head`, `rm`: Text processing and file path resolution etc.
 - **[pandoc](https://pandoc.org/)**: Converts Markdown files into HTML.
 - **[git](https://git-scm.com/)**: Version control system for extracting commit metadata.
 - **[shfmt](https://github.com/mvdan/sh#shfmt)**: Formats shell scripts for consistent code style.
