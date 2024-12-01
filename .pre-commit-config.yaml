@@ -26,5 +26,5 @@ repos:
         name: stylelint
         entry: stylelint
         language: system
-        args: []
+        args: ["**/*.html", "**/*.css"]
         files: \.(html|css)$

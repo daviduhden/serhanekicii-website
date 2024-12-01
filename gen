@@ -22,6 +22,32 @@ safe_replace() {
     sed -i "s$DELIM\${$1}$DELIM$REPLACE$DELIM g" "$BUILD_DIR/$file_name"
 }
 
+replace_comment() {
+    file="$1"
+    comment="$2"
+    replacement="$3"
+    append="$4"
+
+    temp_file=$(mktemp)
+
+    while IFS= read -r line; do
+        # shellcheck disable=SC2015
+        echo "$line" | grep -q "<!-- $comment -->" && {
+            if [ "$append" = "true" ]; then
+                echo "$line" >> "$temp_file"
+                echo "$replacement" >> "$temp_file"
+            else
+                echo "$replacement" >> "$temp_file"
+            fi
+        } || {
+            echo "$line" >> "$temp_file"
+        }
+    done < "$file"
+
+    mv "$temp_file" "$file"
+    printf "Processed comment \"<!-- %s -->\" in %s\n" "$comment" "$file"
+}
+
 get_git_info() {
     target="$1"
 
@@ -121,12 +147,11 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             cat "$ext_file" >> "$BUILD_DIR/$file_name"
         done
 
-        # Convert and write markdown file if `is_markdown` is true
         [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
             for md in "$(realpath "$file")"/*.md; do
                 converted_md=$(pandoc "$md")
-                printf "%s\n" "$converted_md" \
-                    | sed -i "/<!-- MARKDOWN -->/r /dev/stdin" "$BUILD_DIR/$file_name"
+                # Replace or append the converted markdown content after the <!-- MARKDOWN --> comment
+                replace_comment "$BUILD_DIR/$file_name" "MARKDOWN" "$converted_md" "true"
                 printf "Markdown file %s successfully converted to HTML using Pandoc and aggregated into %s\n" "$BUILD_DIR/$file_name" "$md"
             done
         }
@@ -134,7 +159,9 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
         for css in "$(realpath "$file")"/*.css; do
             [ -f "$css" ] || continue # Skip if no CSS files found
             cat "$css" >> "$BUILD_DIR/$file_wext.css"
-            sed -i "/<head>/a \    <link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">" "$BUILD_DIR/$file_name"
+            stylesheet="<link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">"
+
+            replace_comment "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true"
             printf "Aggregated %s into %s\n" "$css" "$BUILD_DIR/$file_wext.css"
         done
 
@@ -169,19 +196,28 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             safe_replace "$key" "$val" "$BUILD_DIR/$file_name"
         done
 
-        # Link files to index.html and RSS if enabled
         link_index=${link_index:-"false"}
         link_rss=${link_rss:-"false"}
         date_created=${date_created:-""}
         title=${title:-"Untitled"}
 
+        # Link file to index.html if link_index is true and file_name is not index.html
         [ "$file_name" != "index.html" ] && [ "$link_index" = "true" ] && {
-            sed -i "/^    <!-- POSTS -->/a <li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" "$BUILD_DIR/index.html"
+            # Prepare the content to append to the <!-- POSTS --> comment in index.html
+            post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>"
+
+            # Use replace_comment to append the post content after the <!-- POSTS --> comment in index.html
+            replace_comment "$BUILD_DIR/index.html" "POSTS" "$post_content" "true"
             printf "File linked in index.html => %s\n" "$site_url/$file_name"
         }
 
+        # Link file to rss.xml if link_rss is true and file_name is not rss.xml
         [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] && {
-            sed -i "/^<!-- POSTS -->/a <item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>${description:-""}</description>\n</item>" "$BUILD_DIR/rss.xml"
+            # Prepare the content to append to the <!-- POSTS --> comment in rss.xml
+            rss_content="<item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>${description:-""}</description>\n</item>"
+
+            # Use replace_comment to append the rss content after the <!-- POSTS --> comment in rss.xml
+            replace_comment "$BUILD_DIR/rss.xml" "POSTS" "$rss_content" "true"
             printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
         }
 
@@ -192,17 +228,7 @@ done
 # This will get info for the whole repository.
 get_git_info "."
 
-repo_commits=$(printf "%s" "$all_commits" | head -n "$COMMITS_NUM")
-
-# Create a temporary file with the commit list
-tmp_file=$(mktemp)
-printf "%s\n" "$repo_commits" > "$tmp_file"
-
-# Append the contents of the temporary file to index.html after the matching line
-sed -i "/^    <!-- GIT -->/r $tmp_file" "$BUILD_DIR/index.html"
-
-# Clean up the temporary file
-rm -f "$tmp_file"
+replace_comment "$BUILD_DIR/index.html" "GIT" "$(printf "%s" "$all_commits" | head -n "$COMMITS_NUM")" "true"
 
 # Copy CSS and images
 cp "$CSS_FILE" "$BUILD_DIR"
