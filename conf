@@ -2,6 +2,11 @@ BUILD_DIR="build"
 PICS_DIR="pix"
 CSS_FILE="style.css"
 
+GITHUB_REPO="website"
+GITHUB_USER="serhanekicii" # Github username
+# Add last n commits to index
+COMMITS_NUM=10
+
 default_header="header.html"
 default_footer="footer.html"
 

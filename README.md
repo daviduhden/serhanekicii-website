@@ -36,11 +36,9 @@ This ~200-line `gen` POSIX-compliant shell script is a flexible static site gene
 ## Dependencies
 
 - **POSIX Utilities**:
-  - `sed`, `awk`, `realpath`, `date`: For text processing, file path resolution, and date formatting.
+  - `sed`, `awk`, `realpath`: For text processing and file path resolution.
 - **[pandoc](https://pandoc.org/)**: Converts Markdown files into HTML.
-- **[jq](https://jqlang.github.io/jq/)**: Processes JSON, used for parsing GitHub API responses.
 - **[git](https://git-scm.com/)**: Version control system for extracting commit metadata.
-- **[curl](https://curl.se/)**: Interacts with the GitHub API to fetch commit history.
 - **[shfmt](https://github.com/mvdan/sh#shfmt)**: Formats shell scripts for consistent code style.
 - **[shellcheck](https://github.com/koalaman/shellcheck)**: Lints shell scripts to detect errors and enforce best practices.
 - **[pre-commit](https://pre-commit.com/)**: Manages and runs hooks in Git repositories, ensuring code quality.

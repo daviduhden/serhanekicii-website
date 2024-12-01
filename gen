@@ -1,9 +1,6 @@
 #!/bin/sh
 
 CONF_FILE=./conf
-GITHUB_REPO="website"
-GITHUB_USER="serhanekicii" # Github username
-GITHUB_TOKEN=""            # Github Personal Access Token (if repo is not public)
 
 safe_replace() {
     DELIM=$(printf "\001") # Rare sed delimiter to use
@@ -185,27 +182,21 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
     ) # Subshell to maintain file-specific variables.
 done
 
-# Add last n commits to index
-COMMITS_NUM=10
-commit_history=$(curl --silent -u "$GITHUB_USER":"$GITHUB_TOKEN" \
-    -H "Accept: application/vnd.github.v3+json" \
-    "https://api.github.com/repos/$GITHUB_USER/$GITHUB_REPO/commits" \
-    | jq '.[] | "|\(.commit.author.date)|\(.commit.message)|\(.html_url)|" | gsub("[\n\t]"; "")' \
-    | head -$COMMITS_NUM)
+# This will get info for the whole repository this time.
+get_git_info "."
+# shellcheck disable=SC2031
+commit_history=$(echo "$git_info" | head -"$COMMITS_NUM")
 
-# Reverse order without tac or tail -r nonsense
-commit_history=$(echo "$commit_history" | awk '{a[NR]=$0} END {for(i=NR; i>=1; i--) printf("%s\n",a[i]);}')
+# Process each commit history line, in reverse order.
+echo "$commit_history" | awk '{lines[NR]=$0} END {for (i=NR; i>0; i--) print lines[i]}' | while read -r line; do
+    commit_date=$(echo "$line" | cut -d'|' -f 1)
+    commit_msg=$(echo "$line" | cut -d'|' -f 4)
+    commit_hash=$(echo "$line" | cut -d'|' -f 2)
+    commit_url=$commit_base_url/$commit_hash
 
-echo "$commit_history" | while read -r line; do
-    date=$(echo "$line" | awk -F "|" '{print $2}')
-    # Convert ISO 8601 date to RSS format using git's --date
-    date=$(date --date="$date" +"%a, %d %b %Y %H:%M:%S %z")
-
-    commit_msg=$(echo "$line" | awk -F "|" '{print $3}')
-    commit_url=$(echo "$line" | awk -F "|" '{print $4}')
-
+    # Add commit entry to the index.html file (or any other target)
     # shellcheck disable=SC2031
-    sed -i "/^    <!-- GIT -->/a <li><time datetime=\"$date\">$date</time> &ndash; <a target=\"_blank\" href=\"$commit_url\">$(echo "$commit_msg" | sed 's/[&/\"]/\\\&/g')</a></li>" "$BUILD_DIR/index.html"
+    sed -i "/^    <!-- GIT -->/a <li><time datetime=\"$commit_date\">$commit_date</time> &ndash; <a target=\"_blank\" href=\"$commit_url\">$commit_msg</a></li>" "$BUILD_DIR/index.html"
 done
 
 # Copy CSS and images
