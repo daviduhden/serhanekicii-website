@@ -18,6 +18,10 @@ site_mail="me@serhanekici.com"
 site_description="Serhan Ekici's personal website."
 site_author="Serhan Ekici"
 
+# Only link if explicitly set to.
+link_index=false
+link_rss=false
+
 # Files to build in order
 to_build="
 ./index.html
