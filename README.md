@@ -2,13 +2,13 @@
 
 ## Overview
 
-This ~200-line `gen` POSIX-compliant shell script is a flexible static site generator designed to transform my content into a fully functional and transparent webpage. The generator's core philosophy is **file-based modularity**, where every piece of content in a directory treated generated into one file. It combines dynamic content generation with version control metadata, to generate a Git-driven dynamic static webpage.
+This ~200-line `gen` POSIX-compliant shell script is a flexible static site generator designed to transform my content into a fully functional and transparent website. The generator's core philosophy is **file-based modularity**, where every piece of content in a directory generated into one file. It combines dynamic content generation with version control metadata, to generate a Git-driven static website.
 
 ## Features
 
 - **D.R.Y. - Do Not Repeat Yourself**
 
-  - **Configuration Management**: The script uses a global conf file to define global settings, such as (`BUILD_DIR`, `CSS_FILE`, `PICS_DIR`, `site_lang`, `default_footer`, `site_description`), and values for custom global variables. Individual files or directories can also include their own `conf` file to override global settings or file-specific metadata.
+  - **Configuration Management**: The script uses a global conf file to define global settings, such as (`BUILD_DIR`, `CSS_FILE`, `PICS_DIR`, `site_lang`, `default_footer`, `site_description`), and values for custom global variables. Individual files can also include their own `conf` file to override global variables or file-specific Git metadata.
   - **Dynamic Placeholder Replacement**: Placeholders like `${author_name}`, `${date_created}`, `${date_modified}`, and `${title}` are dynamically replaced with:
     - **Git Metadata**: For values like creation and modification timestamps, and author names.
     - **Custom Variables**: Defined in either the global `conf` file or file-specific `conf` files.
@@ -22,7 +22,7 @@ This ~200-line `gen` POSIX-compliant shell script is a flexible static site gene
 - **Markdown Injection**:
 
   - Converts Markdown files to HTML using `pandoc` and injects the output into specified placeholders within HTML templates.
-  - Enables the combination of simple Markdown content with complex HTML layouts seamlessly.
+  - Enables the combination of simple Markdown content with HTML.
 
 - **Support for Modular Files**:
 
@@ -35,7 +35,7 @@ This ~200-line `gen` POSIX-compliant shell script is a flexible static site gene
 
 ## Dependencies
 
-- **POSIX Tools**:
+- **POSIX Utilities**:
   - `sed`, `awk`, `realpath`, `date`: For text processing, file path resolution, and date formatting.
 - **[pandoc](https://pandoc.org/)**: Converts Markdown files into HTML.
 - **[jq](https://jqlang.github.io/jq/)**: Processes JSON, used for parsing GitHub API responses.
