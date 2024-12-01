@@ -19,7 +19,7 @@ repos:
         name: prettier
         entry: prettier
         language: system
-        args: ["--check", "**/*.html", "**/*.css"]
+        args: ["--check", "**/*.html", "**/*.css", "**/*.md"]
         files: \.(html|css|md)$
 
       - id: stylelint
