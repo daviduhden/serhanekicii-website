@@ -91,96 +91,98 @@ PICS_DIR=${PICS_DIR:-"./pics"}
 mkdir -p "$BUILD_DIR"
 
 for file in $(echo "$to_build" | sed '/^$/d'); do
-    file=$(realpath "$file")
-    file_name=$(basename "$file")
-    file_ext="${file_name##*.}"
-    file_wext=${file_name%.*}
+    ( # Subshell to maintain file-specific variables.
+        file=$(realpath "$file")
+        file_name=$(basename "$file")
+        file_ext="${file_name##*.}"
+        file_wext=${file_name%.*}
 
-    [ ! -d "$file" ] && {
-        printf "ERROR: %s doesn't exist.\n" "$file"
-        exit 1
-    }
+        [ ! -d "$file" ] && {
+            printf "ERROR: %s doesn't exist.\n" "$file"
+            exit 1
+        }
 
-    touch "$BUILD_DIR/$file_name"
+        touch "$BUILD_DIR/$file_name"
 
-    printf "Started generating => %s/%s\n" "$BUILD_DIR" "$file_name"
+        printf "Started generating => %s/%s\n" "$BUILD_DIR" "$file_name"
 
-    # Source file-specific conf
-    [ -f "$file/conf" ] && . "$file/conf"
+        # Source file-specific conf
+        [ -f "$file/conf" ] && . "$file/conf"
 
-    # Write default header.
-    [ "$file_ext" = "html" ] && { [ -z "$add_header" ] || [ "$add_header" = "true" ]; } && cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
+        # Write default header.
+        [ "$file_ext" = "html" ] && { [ -z "$add_header" ] || [ "$add_header" = "true" ]; } && cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
 
-    # Write ext files if exist
-    for ext_file in "$file"/*."$file_ext"; do
-        cat "$ext_file" >> "$BUILD_DIR/$file_name"
-    done
-
-    # Convert and write markdown file if `is_markdown` is true
-    [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
-        for md in "$(realpath "$file")"/*.md; do
-            converted_md=$(pandoc "$md")
-            echo "$converted_md" \
-                | sed -i "/<!-- MARKDOWN -->/r /dev/stdin" "$BUILD_DIR/$file_name"
-            printf "Markdown file %s successfully converted to HTML using Pandoc and aggregated into %s\n" "$BUILD_DIR/$file_name" "$md"
+        # Write ext files if exist
+        for ext_file in "$file"/*."$file_ext"; do
+            cat "$ext_file" >> "$BUILD_DIR/$file_name"
         done
-    }
 
-    for css in "$(realpath "$file")"/*.css; do
-        [ -f "$css" ] || continue # Skip if no CSS files found
-        cat "$css" >> "$BUILD_DIR/$file_wext.css"
-        sed -i "/<head>/a \    <link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">" "$BUILD_DIR/$file_name"
-        printf "Aggregated %s into %s\n" "$css" "$BUILD_DIR/$file_wext.css"
-    done
+        # Convert and write markdown file if `is_markdown` is true
+        [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
+            for md in "$(realpath "$file")"/*.md; do
+                converted_md=$(pandoc "$md")
+                echo "$converted_md" \
+                    | sed -i "/<!-- MARKDOWN -->/r /dev/stdin" "$BUILD_DIR/$file_name"
+                printf "Markdown file %s successfully converted to HTML using Pandoc and aggregated into %s\n" "$BUILD_DIR/$file_name" "$md"
+            done
+        }
 
-    # Write default footer.
-    [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; } && cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
+        for css in "$(realpath "$file")"/*.css; do
+            [ -f "$css" ] || continue # Skip if no CSS files found
+            cat "$css" >> "$BUILD_DIR/$file_wext.css"
+            sed -i "/<head>/a \    <link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">" "$BUILD_DIR/$file_name"
+            printf "Aggregated %s into %s\n" "$css" "$BUILD_DIR/$file_wext.css"
+        done
 
-    # Extract placeholders using grep, then remove the `${}` and sort uniquely
-    placeholders=$(grep -o "\${\([^}]*\)}" "$BUILD_DIR/$file_name" | sed 's/[${}]//g' | sort -u)
+        # Write default footer.
+        [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; } && cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
 
-    # Get git info
-    get_git_info "$file_name"
+        # Extract placeholders using grep, then remove the `${}` and sort uniquely
+        placeholders=$(grep -o "\${\([^}]*\)}" "$BUILD_DIR/$file_name" | sed 's/[${}]//g' | sort -u)
 
-    for key in $placeholders; do
-        eval val=\$"$key"
+        # Get git info
+        get_git_info "$file_name"
 
-        # Handle git-derived values or warn about undefined placeholders
-        case "$key" in
-            date_created | date_updated)
-                [ -z "$val" ] && {
-                    val=$([ "$key" = "date_created" ] && echo "$git_creation_date" || echo "$git_modification_date")
-                    log_msg=$([ "$key" = "date_created" ] && echo "creation date" || echo "modification date")
-                    printf "Replacing placeholder/key \"%s\" with git-derived %s => \"%s\" in %s (value not available in config to override)\n" "$key" "$log_msg" "$val" "$file_name"
-                }
-                ;;
-            *)
-                [ -z "$val" ] && printf "WARNING: Placeholder \"%s\" has no value.\n" "$key"
-                ;;
-        esac
+        for key in $placeholders; do
+            eval val=\$"$key"
 
-        # Replace the placeholder in the file
-        printf "Replacing placeholder/key \"%s\" with value => \"%s\" in %s\n" "$key" "$val" "$file_name"
-        safe_replace "$key" "$val" "$BUILD_DIR/$file_name"
-    done
+            # Handle git-derived values or warn about undefined placeholders
+            case "$key" in
+                date_created | date_updated)
+                    [ -z "$val" ] && {
+                        val=$([ "$key" = "date_created" ] && echo "$git_creation_date" || echo "$git_modification_date")
+                        log_msg=$([ "$key" = "date_created" ] && echo "creation date" || echo "modification date")
+                        printf "Replacing placeholder/key \"%s\" with git-derived %s => \"%s\" in %s (value not available in config to override)\n" "$key" "$log_msg" "$val" "$file_name"
+                    }
+                    ;;
+                *)
+                    [ -z "$val" ] && printf "WARNING: Placeholder \"%s\" has no value.\n" "$key"
+                    ;;
+            esac
 
-    # Link files to index.html and RSS if enabled
-    link_index=${link_index:-"false"}
-    link_rss=${link_rss:-"false"}
-    date_created=${date_created:-""}
-    title=${title:-"Untitled"}
+            # Replace the placeholder in the file
+            printf "Replacing placeholder/key \"%s\" with value => \"%s\" in %s\n" "$key" "$val" "$file_name"
+            safe_replace "$key" "$val" "$BUILD_DIR/$file_name"
+        done
 
-    [ "$file_name" != "index.html" ] && [ "$link_index" = "true" ] && {
-        sed -i "/^    <!-- POSTS -->/a <li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" "$BUILD_DIR/index.html"
-        printf "File linked in index.html => %s\n" "$site_url/$file_name"
-    }
+        # Link files to index.html and RSS if enabled
+        link_index=${link_index:-"false"}
+        link_rss=${link_rss:-"false"}
+        date_created=${date_created:-""}
+        title=${title:-"Untitled"}
 
-    [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] && {
-        sed -i "/^<!-- POSTS -->/a <item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>${description:-""}</description>\n</item>" "$BUILD_DIR/rss.xml"
-        printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
-    }
+        [ "$file_name" != "index.html" ] && [ "$link_index" = "true" ] && {
+            sed -i "/^    <!-- POSTS -->/a <li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" "$BUILD_DIR/index.html"
+            printf "File linked in index.html => %s\n" "$site_url/$file_name"
+        }
 
-    printf "Finished generating %s\n\n" "$BUILD_DIR/$file_name"
+        [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] && {
+            sed -i "/^<!-- POSTS -->/a <item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>${description:-""}</description>\n</item>" "$BUILD_DIR/rss.xml"
+            printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
+        }
+
+        printf "Finished generating %s\n\n" "$BUILD_DIR/$file_name"
+    ) # Subshell to maintain file-specific variables.
 done
 
 # Add last n commits to index
@@ -202,9 +204,12 @@ echo "$commit_history" | while read -r line; do
     commit_msg=$(echo "$line" | awk -F "|" '{print $3}')
     commit_url=$(echo "$line" | awk -F "|" '{print $4}')
 
+    # shellcheck disable=SC2031
     sed -i "/^    <!-- GIT -->/a <li><time datetime=\"$date\">$date</time> &ndash; <a target=\"_blank\" href=\"$commit_url\">$(echo "$commit_msg" | sed 's/[&/\"]/\\\&/g')</a></li>" "$BUILD_DIR/index.html"
 done
 
 # Copy CSS and images
+# shellcheck disable=SC2031
 cp "$CSS_FILE" "$BUILD_DIR"
+# shellcheck disable=SC2031
 cp -r "$PICS_DIR" "$BUILD_DIR"
