@@ -4,49 +4,56 @@
 CONF_FILE=./conf
 
 safe_replace() {
-    DELIM=$(printf "\001") # Rare sed delimiter to use
-    # Escape '&', '\', and '/' in the replacement string
-    REPLACE=$(printf '%s' "$2" | sed 's/[&/\]/\\&/g')
-    sed -i "s$DELIM\${$1}$DELIM$REPLACE$DELIM g" "$BUILD_DIR"/"$file_name"
+    DELIM=$(printf "\001") # Rare sed delimiter to avoid conflicts
+
+    # Escape special characters in the replacement string to make it safe for sed
+    REPLACE=$(printf "%s" "$2" | sed 's/[&/\]/\\&/g')
+
+    # Convert newlines into a placeholder sequence (e.g., '\n')
+    REPLACE=$(printf "%s" "$REPLACE" | sed ':a;N;$!ba;s/\n/\\n/g')
+
+    # Ensure REPLACE is not empty
+    if [ -z "$REPLACE" ]; then
+        printf "Skipping replacement for placeholder \"%s\" because the replacement value is empty or invalid.\n" "$1"
+        return
+    fi
+
+    # Replace the placeholder in the file using sed
+    sed -i "s$DELIM\${$1}$DELIM$REPLACE$DELIM g" "$BUILD_DIR/$file_name"
 }
 
 get_git_info() {
     target="$1"
 
+    # Get the commit logs.
     git_info=$(git log --format='%ad|%h|%an|%s' --date=rfc -- "$target")
-    # Get creation commit info (earliest commit introducing the file)
-    git_creation_info=$(printf "%s" "$git_info" | tail -1)
-    git_creation_hash=$(printf "%s" "$git_creation_info" | cut -d'|' -f2)
-    git_creation_date=$(printf "%s" "$git_creation_info" | cut -d'|' -f1)
-    # shellcheck disable=SC2034
-    git_creation_author=$(printf "%s" "$git_creation_info" | cut -d'|' -f3)
 
-    # Get latest modification commit info
-    # shellcheck disable=SC2034
-    git_modification_info=$(printf "%s" "$git_info" | head -1)
-    git_modification_hash=$(printf "%s" "$git_modification_info" | cut -d'|' -f2)
-    git_modification_date=$(printf "%s" "$git_modification_info" | cut -d'|' -f1)
-    # shellcheck disable=SC2034
-    git_modification_author=$(printf "%s" "$git_modification_info" | cut -d'|' -f3)
+    git_creation_info=$(echo "$git_info" | tail -n 1)
+    git_modification_info=$(echo "$git_info" | head -n 1)
 
-    # Construct base commit URL
+    git_creation_hash=$(echo "$git_creation_info" | cut -d'|' -f2)
+    git_creation_date=$(echo "$git_creation_info" | cut -d'|' -f1)
+
+    git_modification_hash=$(echo "$git_modification_info" | cut -d'|' -f2)
+    git_modification_date=$(echo "$git_modification_info" | cut -d'|' -f1)
+
+    # shellcheck disable=SC2034
+    git_creation_author=$(echo "$git_creation_info" | cut -d'|' -f3)
+    # shellcheck disable=SC2034
+    git_modification_author=$(echo "$git_modification_info" | cut -d'|' -f3)
+
     commit_base_url="https://github.com/$GITHUB_USER/$GITHUB_REPO/commit"
     # shellcheck disable=SC2034
     git_creation_commit_link="$commit_base_url/$git_creation_hash"
     # shellcheck disable=SC2034
     git_modification_commit_link="$commit_base_url/$git_modification_hash"
 
-    all_commits=""
-    temp_file=$(mktemp) # Create a temporary file
-
-    echo "$git_info" > "$temp_file"
-
-    while IFS='|' read -r commit_date commit_hash commit_author commit_message; do
+    # Generate all commits list with newline after each entry
+    all_commits=$(echo "$git_info" | while IFS='|' read -r commit_date commit_hash commit_author commit_message; do
         commit_url="$commit_base_url/$commit_hash"
-        all_commits="${all_commits}<li><time datetime=\"$commit_date\">$commit_date</time> &ndash; <strong>$commit_author</strong>: <a target=\"_blank\" href=\"$commit_url\">$commit_message</a></li>"
-    done < "$temp_file"
-
-    rm -f "$temp_file" # Clean up the temporary file
+        printf "<li><time datetime=\"%s\">%s</time> &ndash; <strong>%s</strong>: <a target=\"_blank\" href=\"%s\">%s</a></li>\n" \
+            "$commit_date" "$commit_date" "$commit_author" "$commit_url" "$commit_message"
+    done)
 }
 
 # Function to check if a command exists
@@ -182,21 +189,20 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
     ) # Subshell to maintain file-specific variables.
 done
 
-# This will get info for the whole repository this time.
+# This will get info for the whole repository.
 get_git_info "."
-commit_history=$(printf "%s" "$git_info" | head -"$COMMITS_NUM")
 
-# Process each commit history line, in reverse order.
-printf "%s" "$commit_history" | awk '{lines[NR]=$0} END {for (i=NR; i>0; i--) print lines[i]}' | while read -r line; do
-    commit_date=$(printf "%s" "$line" | cut -d'|' -f 1)
-    commit_msg=$(printf "%s" "$line" | cut -d'|' -f 4)
-    commit_hash=$(printf "%s" "$line" | cut -d'|' -f 2)
-    commit_url=$commit_base_url/$commit_hash
+repo_commits=$(printf "%s" "$all_commits" | head -n "$COMMITS_NUM")
 
-    # Add commit entry to the index.html file (or any other target)
-    # shellcheck disable=SC2031
-    sed -i "/^    <!-- GIT -->/a <li><time datetime=\"$commit_date\">$commit_date</time> &ndash; <a target=\"_blank\" href=\"$commit_url\">$commit_msg</a></li>" "$BUILD_DIR/index.html"
-done
+# Create a temporary file with the commit list
+tmp_file=$(mktemp)
+printf "%s\n" "$repo_commits" > "$tmp_file"
+
+# Append the contents of the temporary file to index.html after the matching line
+sed -i "/^    <!-- GIT -->/r $tmp_file" "$BUILD_DIR/index.html"
+
+# Clean up the temporary file
+rm -f "$tmp_file"
 
 # Copy CSS and images
 cp "$CSS_FILE" "$BUILD_DIR"
