@@ -39,8 +39,7 @@ get_git_info() {
     all_commits=""
     temp_file=$(mktemp) # Create a temporary file
 
-    # Get Git info for the target file.
-    git log --format='%ad|%h|%an|%s' --date=rfc -- "$target" > "$temp_file"
+    echo "$git_info" > "$temp_file"
 
     while IFS='|' read -r commit_date commit_hash commit_author commit_message; do
         commit_url="$commit_base_url/$commit_hash"
