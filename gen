@@ -25,7 +25,7 @@ replace_placeholder() {
 
 # Function to replace or append <!-- %s ---> comments, without sed.
 replace_comment() {
-    file="$1"
+    target_file="$1"
     comment="$2"
     replacement="$3"
     append="$4"
@@ -44,9 +44,9 @@ replace_comment() {
         } || {
             echo "$line" >> "$temp_file"
         }
-    done < "$file"
+    done < "$target_file"
 
-    mv "$temp_file" "$file"
+    mv "$temp_file" "$target_file"
     printf "Replaced or appended to \"<!-- %s -->\" in %s\n" "$comment" "$file"
 }
 
@@ -97,7 +97,6 @@ check_command() {
 check_var() {
     var_name="$1"
     # Use eval to fetch the value of the variable dynamically
-    var_value
     eval var_value=\$"$var_name"
 
     # Check if the variable is empty
@@ -154,41 +153,53 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
         [ -f "$file/conf" ] && . "$file/conf"
 
         # Write default header if applicable
-        # shellcheck disable=SC2015
         [ "$file_ext" = "html" ] && {
-            [ -z "$add_header" ] || [ "$add_header" = "true" ]
-        } && [ -f "$default_header" ] || {
-            printf "ERROR: The default header file '%s' does not exist. Exiting.\n" "$default_header"
-            exit 1
+            # shellcheck disable=SC2154,2015
+            [ "$add_header" != "false" ] \
+                && [ -f "$default_header" ] && {
+                # Append the default header
+                cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
+            } || {
+                printf "ERROR: The default header file '%s' does not exist. Exiting.\n" "$default_header"
+                exit 1
+            }
         }
 
-        # Append the default header
-        cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
-
-        # Write extension files if exist
+        # Write extension files if they exist
         for ext_file in "$file"/*."$file_ext"; do
-            cat "$ext_file" >> "$BUILD_DIR/$file_name"
+            # Log the attempt to append the content
+            printf "Appending content from %s to %s\n" "$ext_file" "$BUILD_DIR/$file_name"
+
+            # Append the content of the extension file to the main file (only if it exists)
+            cat "$ext_file" >> "$BUILD_DIR/$file_name" 2> /dev/null || printf "WARNING: No such file %s found\n" "$ext_file"
         done
 
-        # Convert Markdown to HTML if applicable
+        # convert markdown to html if applicable
         [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
-            for md in "$(realpath "$file")"/*.md; do
+            for md in "$file"/*.md; do
                 converted_md=$(pandoc "$md")
-                # Replace or append the converted markdown content after the <!-- MARKDOWN --> comment
+                # Replace or append the converted markdown content after the <!-- markdown --> comment
                 replace_comment "$BUILD_DIR/$file_name" "MARKDOWN" "$converted_md" "true"
-                printf "Markdown file %s successfully converted to HTML using Pandoc and aggregated into %s\n" "$BUILD_DIR/$file_name" "$md"
+                printf "Markdown file %s successfully converted to HTML using pandoc and aggregated into %s\n" "$md" "$BUILD_DIR/$file_name"
             done
         }
 
-        # Aggregate CSS files if found
-        for css in "$(realpath "$file")"/*.css; do
-            [ -f "$css" ] || continue # Skip if no CSS files found
-            cat "$css" >> "$BUILD_DIR/$file_wext.css"
-            stylesheet="<link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">"
+        # convert markdown to html if applicable
+        [ "$file_ext" = "html" ] && {
+            for css in "$file"/*.css; do
+                # Concatenate all .css files into the target CSS file
+                cat "$css" >> "$BUILD_DIR/$file_wext.css"
 
-            replace_comment "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true"
-            printf "Aggregated %s into %s\n" "$css" "$BUILD_DIR/$file_wext.css"
-        done
+                # Generate the <link> tag for inclusion in the HTML
+                stylesheet="<link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">"
+
+                # Replace the placeholder in the HTML file
+                replace_comment "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true"
+
+                # Log the aggregation process
+                printf "Aggregated CSS files into %s\n" "$BUILD_DIR/$file_wext.css"
+            done
+        }
 
         # Write default footer if applicable
         [ "$file_ext" = "html" ] && {
