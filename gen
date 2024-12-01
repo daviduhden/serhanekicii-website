@@ -121,7 +121,7 @@ PICS_DIR=${PICS_DIR:-"./pics"}
     exit 1
 }
 
-[ -d "$BUILD_DIR" ] && rm -rf "$BUILD_DIR" # Delete build dir if exist
+[ -d "$BUILD_DIR" ] && rm -rf "$BUILD_DIR" # Delete build dir if it exists
 mkdir -p "$BUILD_DIR"
 
 for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
@@ -143,14 +143,17 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
         # Source file-specific conf
         [ -f "$file/conf" ] && . "$file/conf"
 
-        # Write default header.
-        [ "$file_ext" = "html" ] && { [ -z "$add_header" ] || [ "$add_header" = "true" ]; } && cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
+        # Write default header if applicable
+        [ "$file_ext" = "html" ] && {
+            [ -z "$add_header" ] || [ "$add_header" = "true" ]
+        } && cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
 
-        # Write ext files if exist
+        # Write external files if exist
         for ext_file in "$file"/*."$file_ext"; do
             cat "$ext_file" >> "$BUILD_DIR/$file_name"
         done
 
+        # Convert Markdown to HTML if applicable
         [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
             for md in "$(realpath "$file")"/*.md; do
                 converted_md=$(pandoc "$md")
@@ -160,6 +163,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             done
         }
 
+        # Aggregate CSS files if found
         for css in "$(realpath "$file")"/*.css; do
             [ -f "$css" ] || continue # Skip if no CSS files found
             cat "$css" >> "$BUILD_DIR/$file_wext.css"
@@ -169,10 +173,12 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             printf "Aggregated %s into %s\n" "$css" "$BUILD_DIR/$file_wext.css"
         done
 
-        # Write default footer.
-        [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; } && cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
+        # Write default footer if applicable
+        [ "$file_ext" = "html" ] && {
+            [ -z "$add_footer" ] || [ "$add_footer" = "true" ]
+        } && cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
 
-        # Extract placeholders using grep, then remove the `${}` and sort uniquely
+        # Extract and process placeholders
         placeholders=$(grep -o "\${\([^}]*\)}" "$BUILD_DIR/$file_name" | sed 's/[${}]//g' | sort -u)
 
         # Get git info
@@ -200,6 +206,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             replace_placeholder "$key" "$val" "$BUILD_DIR/$file_name"
         done
 
+        # Link file to index.html if necessary
         link_index=${link_index:-"false"}
         link_rss=${link_rss:-"false"}
         date_created=${date_created:-""}
@@ -215,7 +222,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             printf "File linked in index.html => %s\n" "$site_url/$file_name"
         }
 
-        # Link file to rss.xml if link_rss is true and file_name is not rss.xml
+        # Link file to rss.xml if necessary
         [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] && {
             # Prepare the content to append to the <!-- POSTS --> comment in rss.xml
             rss_content="<item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>${description:-""}</description>\n</item>"
@@ -232,6 +239,7 @@ done
 # This will get info for the whole repository.
 get_git_info "."
 
+# Replace comment in index.html with commit info
 replace_comment "$BUILD_DIR/index.html" "GIT" "$(printf "%s" "$all_commits" | head -n "$COMMITS_NUM")" "true"
 
 # Copy CSS and images
