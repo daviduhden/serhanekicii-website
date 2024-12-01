@@ -53,7 +53,7 @@ replace_comment() {
 get_git_info() {
     target="$1"
 
-    # Get the commit logs.
+    # Get git logs for the target
     git_info=$(git log --format='%ad|%h|%an|%s' --date=rfc -- "$target")
 
     git_creation_info=$(echo "$git_info" | tail -n 1)
@@ -70,6 +70,7 @@ get_git_info() {
     # shellcheck disable=SC2034
     git_modification_author=$(echo "$git_modification_info" | cut -d'|' -f3)
 
+    # Construct base URL
     commit_base_url="https://github.com/$GITHUB_USER/$GITHUB_REPO/commit"
     # shellcheck disable=SC2034
     git_creation_commit_link="$commit_base_url/$git_creation_hash"
@@ -174,7 +175,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             cat "$ext_file" >> "$BUILD_DIR/$file_name" 2> /dev/null || printf "WARNING: No such file %s found\n" "$ext_file"
         done
 
-        # convert markdown to html if applicable
+        # Convert markdown to html if applicable
         [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
             for md in "$file"/*.md; do
                 converted_md=$(pandoc "$md")
@@ -184,7 +185,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             done
         }
 
-        # convert markdown to html if applicable
+        # Aggregate CSS files
         [ "$file_ext" = "html" ] && {
             for css in "$file"/*.css; do
                 # Concatenate all .css files into the target CSS file
@@ -246,7 +247,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             printf "File linked in index.html => %s\n" "$site_url/$file_name"
         }
 
-        # Link file to rss.xml if necessary
+        # Link file to rss.xml if link_rss is set to true
         [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] && {
             # Prepare the content to append to the <!-- POSTS --> comment in rss.xml
             rss_content="<item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>${description:-""}</description>\n</item>"
