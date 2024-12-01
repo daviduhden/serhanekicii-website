@@ -3,14 +3,14 @@
 
 CONF_FILE=./conf
 
-safe_replace() {
+replace_placeholder() {
     DELIM=$(printf "\001") # Rare sed delimiter to avoid conflicts
 
     # Escape special characters in the replacement string to make it safe for sed
     REPLACE=$(printf "%s" "$2" | sed 's/[&/\]/\\&/g')
 
-    # Convert newlines into a placeholder sequence (e.g., '\n')
-    REPLACE=$(printf "%s" "$REPLACE" | sed ':a;N;$!ba;s/\n/\\n/g')
+    # Convert newlines into a placeholder sequence (e.g., '\n') using tr
+    REPLACE=$(printf "%s" "$REPLACE" | tr '\n' '\\n')
 
     # Ensure REPLACE is not empty
     if [ -z "$REPLACE" ]; then
@@ -18,10 +18,14 @@ safe_replace() {
         return
     fi
 
-    # Replace the placeholder in the file using sed
-    sed -i "s$DELIM\${$1}$DELIM$REPLACE$DELIM g" "$BUILD_DIR/$file_name"
+    # Use a harmless backup extension (e.g., .bak) to ensure compatibility with both BSD and GNU sed
+    sed -i.bak "s${DELIM}\${$1}${DELIM}${REPLACE}${DELIM}g" "$BUILD_DIR/$file_name"
+
+    # Remove the backup file as not needed
+    rm -f "$BUILD_DIR/$file_name.bak"
 }
 
+# Function to replace or append <!-- %s ---> comments, without sed.
 replace_comment() {
     file="$1"
     comment="$2"
@@ -193,7 +197,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
 
             # Replace the placeholder in the file
             printf "Replacing placeholder/key \"%s\" with value => \"%s\" in %s\n" "$key" "$val" "$file_name"
-            safe_replace "$key" "$val" "$BUILD_DIR/$file_name"
+            replace_placeholder "$key" "$val" "$BUILD_DIR/$file_name"
         done
 
         link_index=${link_index:-"false"}
