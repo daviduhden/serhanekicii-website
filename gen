@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2031
 
 CONF_FILE=./conf
 
@@ -184,7 +185,6 @@ done
 
 # This will get info for the whole repository this time.
 get_git_info "."
-# shellcheck disable=SC2031
 commit_history=$(echo "$git_info" | head -"$COMMITS_NUM")
 
 # Process each commit history line, in reverse order.
@@ -200,7 +200,5 @@ echo "$commit_history" | awk '{lines[NR]=$0} END {for (i=NR; i>0; i--) print lin
 done
 
 # Copy CSS and images
-# shellcheck disable=SC2031
 cp "$CSS_FILE" "$BUILD_DIR"
-# shellcheck disable=SC2031
 cp -r "$PICS_DIR" "$BUILD_DIR"
