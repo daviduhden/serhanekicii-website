@@ -25,7 +25,7 @@ FROM nginx:alpine
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy the generated build files from the builder stage
-COPY --from=builder /website/build /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /website/build /usr/share/nginx/html
 
 # Expose port 80
 EXPOSE 80
