@@ -136,8 +136,8 @@ for file in $(echo "$to_build" | sed '/^$/d'); do
     # Write default footer.
     [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; } && cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
 
-    # Process placeholders
-    placeholders=$(awk -v RS='\\${[^}]*}' 'RT{gsub(/^\${|}$/,"",RT);print RT}' "$BUILD_DIR/$file_name" | sort -u)
+    # Extract placeholders using grep, then remove the `${}` and sort uniquely
+    placeholders=$(grep -o "\${\([^}]*\)}" "$BUILD_DIR/$file_name" | sed 's/[${}]//g' | sort -u)
 
     # Get git info
     get_git_info "$file_name"
