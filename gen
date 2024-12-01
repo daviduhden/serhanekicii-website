@@ -15,28 +15,24 @@ safe_replace() {
 get_git_info() {
     target="$1"
 
+    git_info=$(git log --format='%ad|%h|%an|%s' --date=rfc -- "$target")
     # Get creation commit info (earliest commit introducing the file)
-    git_creation_info=$(git log --diff-filter=A --format='%aI|%h|%an' -- "$target" | tail -1)
+    git_creation_info=$(echo "$git_info" | tail -1)
     git_creation_hash=$(echo "$git_creation_info" | cut -d'|' -f2)
     git_creation_date=$(echo "$git_creation_info" | cut -d'|' -f1)
     # shellcheck disable=SC2034
     git_creation_author=$(echo "$git_creation_info" | cut -d'|' -f3)
-    # Convert creation date into RSS format
-    git_creation_date=$([ -n "$git_creation_date" ] && date --date="$git_creation_date" +"%a, %d %b %Y %H:%M:%S %z" || echo "")
 
     # Get latest modification commit info
     # shellcheck disable=SC2034
-    git_modification_info=$(git log -1 --format='%aI|%h|%an' -- "$target")
+    git_modification_info=$(echo "$git_info" | head -1)
     git_modification_hash=$(echo "$git_modification_info" | cut -d'|' -f2)
     git_modification_date=$(echo "$git_modification_info" | cut -d'|' -f1)
     # shellcheck disable=SC2034
     git_modification_author=$(echo "$git_modification_info" | cut -d'|' -f3)
-    # Convert modification date into RSS format
-    git_modification_date=$([ -n "$git_modification_date" ] && date --date="$git_modification_date" +"%a, %d %b %Y %H:%M:%S %z" || echo "")
 
     # Construct base commit URL
     commit_base_url="https://github.com/$GITHUB_USER/$GITHUB_REPO/commit"
-
     # shellcheck disable=SC2034
     git_creation_commit_link="$commit_base_url/$git_creation_hash"
     # shellcheck disable=SC2034
@@ -45,13 +41,12 @@ get_git_info() {
     all_commits=""
     temp_file=$(mktemp) # Create a temporary file
 
-    # Include author in the format
-    git log --format='%aI|%h|%an|%s' -- "$target" > "$temp_file"
+    # Get Git info for the target file.
+    git log --format='%ad|%h|%an|%s' --date=rfc -- "$target" > "$temp_file"
 
     while IFS='|' read -r commit_date commit_hash commit_author commit_message; do
-        formatted_date=$(date --date="$commit_date" +"%a, %d %b %Y %H:%M:%S %z")
         commit_url="$commit_base_url/$commit_hash"
-        all_commits="${all_commits}<li><time datetime=\"$formatted_date\">$formatted_date</time> &ndash; <strong>$commit_author</strong>: <a target=\"_blank\" href=\"$commit_url\">$commit_message</a></li>"
+        all_commits="${all_commits}<li><time datetime=\"$commit_date\">$commit_date</time> &ndash; <strong>$commit_author</strong>: <a target=\"_blank\" href=\"$commit_url\">$commit_message</a></li>"
     done < "$temp_file"
 
     rm -f "$temp_file" # Clean up the temporary file
@@ -201,7 +196,7 @@ commit_history=$(echo "$commit_history" | awk '{a[NR]=$0} END {for(i=NR; i>=1; i
 
 echo "$commit_history" | while read -r line; do
     date=$(echo "$line" | awk -F "|" '{print $2}')
-    # Convert ISO 8601 date to RSS format
+    # Convert ISO 8601 date to RSS format using git's --date
     date=$(date --date="$date" +"%a, %d %b %Y %H:%M:%S %z")
 
     commit_msg=$(echo "$line" | awk -F "|" '{print $3}')
