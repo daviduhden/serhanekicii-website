@@ -23,7 +23,7 @@ replace_placeholder() {
     rm -f "$BUILD_DIR/$file_name.bak"
 }
 
-# Function to replace or append <!-- %s ---> comments, without sed.
+# Function to replace or append <!-- %s --> comments, without sed.
 replace_comment() {
     target_file="$1"
     comment="$2"
@@ -33,10 +33,10 @@ replace_comment() {
     temp_file=$(mktemp)
 
     while IFS= read -r line; do
-        echo "$line" | grep -q "<!-- $comment -->" && {
-            echo "$line" >> "$temp_file"
-            [ "$append" = "true" ] && echo "$replacement" >> "$temp_file" || echo "$replacement" > /dev/null
-        } || echo "$line" >> "$temp_file"
+        printf "%s\n" "$line" | grep -q "<!-- $comment -->" && {
+            printf "%s\n" "$line" >> "$temp_file"
+            [ "$append" = "true" ] && printf "%s\n" "$replacement" >> "$temp_file" || printf "%s\n" "$replacement" > /dev/null
+        } || printf "%s\n" "$line" >> "$temp_file"
     done < "$target_file"
 
     mv "$temp_file" "$target_file"
@@ -49,19 +49,19 @@ get_git_info() {
     # Get git logs for the target
     git_info=$(git log --format='%ad|%h|%an|%s' --date=rfc -- "$target")
 
-    git_creation_info=$(echo "$git_info" | tail -n 1)
-    git_modification_info=$(echo "$git_info" | head -n 1)
+    git_creation_info=$(printf "%s" "$git_info" | tail -n 1)
+    git_modification_info=$(printf "%s" "$git_info" | head -n 1)
 
-    git_creation_hash=$(echo "$git_creation_info" | cut -d'|' -f2)
-    git_creation_date=$(echo "$git_creation_info" | cut -d'|' -f1)
+    git_creation_hash=$(printf "%s" "$git_creation_info" | cut -d'|' -f2)
+    git_creation_date=$(printf "%s" "$git_creation_info" | cut -d'|' -f1)
 
-    git_modification_hash=$(echo "$git_modification_info" | cut -d'|' -f2)
-    git_modification_date=$(echo "$git_modification_info" | cut -d'|' -f1)
+    git_modification_hash=$(printf "%s" "$git_modification_info" | cut -d'|' -f2)
+    git_modification_date=$(printf "%s" "$git_modification_info" | cut -d'|' -f1)
 
     # shellcheck disable=SC2034
-    git_creation_author=$(echo "$git_creation_info" | cut -d'|' -f3)
+    git_creation_author=$(printf "%s" "$git_creation_info" | cut -d'|' -f3)
     # shellcheck disable=SC2034
-    git_modification_author=$(echo "$git_modification_info" | cut -d'|' -f3)
+    git_modification_author=$(printf "%s" "$git_modification_info" | cut -d'|' -f3)
 
     # Construct base URL
     commit_base_url="https://github.com/$GITHUB_USER/$GITHUB_REPO/commit"
@@ -71,10 +71,9 @@ get_git_info() {
     git_modification_commit_link="$commit_base_url/$git_modification_hash"
 
     # Generate all commits list with newline after each entry
-    all_commits=$(echo "$git_info" | while IFS='|' read -r commit_date commit_hash commit_author commit_message; do
-        commit_url="$commit_base_url/$commit_hash"
+    all_commits=$(printf "%s" "$git_info" | while IFS='|' read -r commit_date commit_hash commit_author commit_message; do
         printf "<li><time datetime=\"%s\">%s</time> &ndash; <strong>%s</strong>: <a target=\"_blank\" href=\"%s\">%s</a></li>\n" \
-            "$commit_date" "$commit_date" "$commit_author" "$commit_url" "$commit_message"
+            "$commit_date" "$commit_date" "$commit_author" "$commit_base_url/$commit_hash" "$commit_message"
     done)
 }
 
