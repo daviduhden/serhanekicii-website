@@ -1,5 +1,4 @@
 #!/bin/sh
-# shellcheck disable=SC2031
 
 # Note: This does not resolve symlinks
 posix_realpath() {
