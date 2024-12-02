@@ -108,7 +108,7 @@ check_var() {
 }
 
 # List of required commands
-required_commands="jq pandoc curl git sed realpath"
+required_commands="pandoc curl git sed realpath"
 
 # Dynamically check each command
 for cmd in $required_commands; do
@@ -178,6 +178,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
         # Convert markdown to html if applicable
         [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
             for md in "$file"/*.md; do
+                [ -e "$md" ] || continue
                 converted_md=$(pandoc "$md")
                 # Replace or append the converted markdown content after the <!-- markdown --> comment
                 replace_comment "$BUILD_DIR/$file_name" "MARKDOWN" "$converted_md" "true"
@@ -188,6 +189,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
         # Aggregate CSS files
         [ "$file_ext" = "html" ] && {
             for css in "$file"/*.css; do
+                [ -e "$css" ] || continue
                 # Concatenate all .css files into the target CSS file
                 cat "$css" >> "$BUILD_DIR/$file_wext.css"
 
