@@ -308,4 +308,4 @@ replace "$BUILD_DIR/index.html" "GIT" "$(printf "%s" "$all_commits" | head -n "$
 
 # Copy CSS and images
 cp "$CSS_FILE" "$BUILD_DIR"
-cp -r "$PICS_DIR" "$BUILD_DIR"
+cp -R "$PICS_DIR" "$BUILD_DIR"
