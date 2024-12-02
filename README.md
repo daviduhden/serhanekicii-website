@@ -37,7 +37,7 @@ This ~300-line POSIX-compliant shell script is a flexible static site generator 
 
 - **POSIX Utilities**:
   - `sed`, `realpath`, `printf`, `tr`, `cut`, `grep` `tail` `head`, `rm`: Text processing and file path resolution etc.
-- **[pandoc](https://pandoc.org/)**: Converts Markdown files into HTML.
+- **[cmark-gfm](https://github.com/github/cmark-gfm)**: Converts Markdown files into HTML.
 - **[git](https://git-scm.com/)**: Version control system for extracting commit metadata.
 - **[shfmt](https://github.com/mvdan/sh#shfmt)**: Formats shell scripts for consistent code style.
 - **[shellcheck](https://github.com/koalaman/shellcheck)**: Lints shell scripts to detect errors and enforce best practices.
