@@ -1,7 +1,38 @@
 #!/bin/sh
 # shellcheck disable=SC2031
 
-# Function to replace or append <!-- %s --> comments, without sed.
+extract_placeholders() {
+    target_file="$1"
+    placeholders=""
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Extract all occurrences of ${...} in the line
+        while :; do
+            case "$line" in
+                *\$\{*\}*)
+                    # Extract the first placeholder
+                    before=${line%%\$\{*}
+                    after=${line#*\$\{}
+                    placeholder=${after%%\}*}
+
+                    # Append to placeholders list
+                    placeholders="$placeholders $placeholder"
+
+                    # Remove the processed placeholder from the line
+                    line=${after#*\}}
+                    ;;
+                *)
+                    break
+                    ;;
+            esac
+        done
+    done < "$target_file"
+
+    # Remove duplicates and sort
+    printf "%s" "$placeholders" | tr ' ' '\n' | sort | uniq
+}
+
+# Function to replace or append <!-- %s --> comments and ${x} placeholdes, without sed.
 replace() {
     target_file="$1"
     content="$2"
@@ -114,7 +145,7 @@ check_var() {
 }
 
 # List of required commands
-required_commands="pandoc curl git sed realpath"
+required_commands="pandoc curl git realpath"
 
 # Dynamically check each command
 for cmd in $required_commands; do
@@ -140,7 +171,7 @@ done
 [ -d "$BUILD_DIR" ] && rm -rf "$BUILD_DIR" # Delete build dir if it exists.
 mkdir -p "$BUILD_DIR"
 
-for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
+printf "%s" "$to_build" | while IFS= read -r file; do
     ( # Subshell to maintain file-specific variables.
         file=$(realpath "$file")
         file_name=$(basename "$file")
@@ -216,7 +247,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
         } && cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
 
         # Extract and process placeholders
-        placeholders=$(grep -o "\${\([^}]*\)}" "$BUILD_DIR/$file_name" | sed 's/[${}]//g' | sort -u)
+        placeholders=$(extract_placeholders "$BUILD_DIR/$file_name")
 
         # Get git info
         get_git_info "$file_name"
