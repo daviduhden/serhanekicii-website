@@ -173,8 +173,7 @@ process_file() {
     [ -f "$file/conf" ] && . "$file/conf"
 
     # Write default header if applicable
-    # shellcheck disable=SC2154
-    if [ "$file_ext" = "html" ] && [ "$add_header" != "false" ]; then
+    if [ "$file_ext" = "html" ] && [ "${add_header:-"false"}" != "false" ]; then
         if [ -f "$default_header" ]; then
             cat "$(posix_realpath "$default_header")" >> "$BUILD_DIR/$file_name"
         else
@@ -208,9 +207,8 @@ process_file() {
         && printf "Aggregated CSS files into %s\n" "$BUILD_DIR/$file_wext.css"
 
     # Link file to index.html if link_index is true and file_name is not index.html
-    # shellcheck disable=SC2154
     [ "$file_name" != "index.html" ] && [ "$link_index" = "true" ] \
-        && post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" \
+        && post_content="<li><time datetime=\"${date_created:-}\">${date_created:-}</time> &ndash; <a href=\"$file_name\">${title:-"Untitled"}</a></li>" \
         && replace "$BUILD_DIR/index.html" "POSTS" "$post_content" "true" \
         && printf "File linked in index.html => %s\n" "$site_url/$file_name"
 
