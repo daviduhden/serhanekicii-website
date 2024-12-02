@@ -2,7 +2,7 @@
 
 ## Overview
 
-This ~200-line POSIX-compliant shell script is a flexible static site generator designed to transform content into a fully functional and transparent website. The generator's core philosophy is file-based modularity, where each piece of content in a directory is generated into a single file. It combines dynamic content generation with version control metadata to create a Git-driven static website.
+This ~300-line POSIX-compliant shell script is a flexible static site generator designed to transform content into a fully functional and transparent website. The generator's core philosophy is file-based modularity, where each piece of content in a directory is generated into a single file. It combines dynamic content generation with version control metadata to create a Git-driven static website.
 
 ## Features
 

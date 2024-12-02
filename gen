@@ -172,6 +172,8 @@ done
 mkdir -p "$BUILD_DIR"
 
 printf "%s" "$to_build" | while IFS= read -r file; do
+    # Skip empty lines
+    [ -n "$file" ] || continue
     ( # Subshell to maintain file-specific variables.
         file=$(realpath "$file")
         file_name=$(basename "$file")
