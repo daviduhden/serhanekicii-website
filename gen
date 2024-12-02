@@ -219,7 +219,7 @@ process_file() {
         && printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
 
     # Write default footer if applicable
-    [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; } \
+    [ "$file_ext" = "html" ] && [ "${add_footer:-"false"}" = "true" ] \
         && cat "$(posix_realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
 
     # Extract and process placeholders
@@ -250,7 +250,6 @@ process_file() {
         printf "Replacing placeholder/key \"%s\" with value => \"%s\" in %s\n" "$key" "$val" "$file_name"
     done
 
-    # Prepare shared resource updates
     [ "$file_name" != "index.html" ] && {
         [ "$link_index" = "true" ] \
             && post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" \
