@@ -32,11 +32,18 @@ replace_comment() {
 
     temp_file=$(mktemp)
 
+    # Use a single loop to process lines
     while IFS= read -r line; do
-        printf "%s\n" "$line" | grep -q "<!-- $comment -->" && {
-            printf "%s\n" "$line" >> "$temp_file"
-            [ "$append" = "true" ] && printf "%s\n" "$replacement" >> "$temp_file" || printf "%s\n" "$replacement" > /dev/null
-        } || printf "%s\n" "$line" >> "$temp_file"
+        # Check if the line contains the comment
+        case "$line" in
+            *"<!-- $comment -->"*)
+                printf "%s\n" "$line" >> "$temp_file"
+                [ "$append" = "true" ] && printf "%s\n" "$replacement" >> "$temp_file" || printf "%s\n" "$replacement" >> "$temp_file"
+                ;;
+            *)
+                printf "%s\n" "$line" >> "$temp_file"
+                ;;
+        esac
     done < "$target_file"
 
     mv "$temp_file" "$target_file"
