@@ -1,32 +1,10 @@
 #!/bin/sh
 # shellcheck disable=SC2031
 
-replace_placeholder() {
-    DELIM=$(printf "\001") # Rare sed delimiter to avoid conflicts
-
-    # Escape special characters in the replacement string to make it safe for sed
-    REPLACE=$(printf "%s" "$2" | sed 's/[&/\]/\\&/g')
-
-    # Convert newlines into a placeholder sequence (e.g., '\n') using tr
-    REPLACE=$(printf "%s" "$REPLACE" | tr '\n' '\\n')
-
-    # Ensure REPLACE is not empty
-    [ -z "$REPLACE" ] && {
-        printf "Skipping replacement for placeholder \"%s\" because the replacement value is empty or invalid.\n" "$1"
-        return
-    }
-
-    # Use a harmless backup extension (e.g., .bak) to ensure compatibility with both BSD and GNU sed
-    sed -i.bak "s${DELIM}\${$1}${DELIM}${REPLACE}${DELIM}g" "$BUILD_DIR/$file_name"
-
-    # Remove the backup file as not needed
-    rm -f "$BUILD_DIR/$file_name.bak"
-}
-
 # Function to replace or append <!-- %s --> comments, without sed.
-replace_comment() {
+replace() {
     target_file="$1"
-    comment="$2"
+    content="$2"
     replacement="$3"
     append="$4"
 
@@ -36,9 +14,38 @@ replace_comment() {
     while IFS= read -r line; do
         # Check if the line contains the comment
         case "$line" in
-            *"<!-- $comment -->"*)
+            *"<!-- $content -->"*)
                 printf "%s\n" "$line" >> "$temp_file"
                 [ "$append" = "true" ] && printf "%s\n" "$replacement" >> "$temp_file" || printf "%s\n" "$replacement" >> "$temp_file"
+                ;;
+            *"\${$content}"*)
+                # Initialize variables for replacement
+                modified_line=""
+                remaining="$line"
+
+                # Loop to replace all occurrences of ${content}
+                while :; do
+                    case "$remaining" in
+                        *"\${$content}"*)
+                            # Extract text before the placeholder
+                            before=${remaining%%"\${$content}"*}
+                            # Extract text after the placeholder
+                            after=${remaining#*"\${$content}"}
+                            # Append the part before and the replacement to modified_line
+                            modified_line="${modified_line}${before}${replacement}"
+                            # Update remaining to the part after the placeholder
+                            remaining="$after"
+                            ;;
+                        *)
+                            # No more placeholders; append the rest of the line
+                            modified_line="${modified_line}${remaining}"
+                            break
+                            ;;
+                    esac
+                done
+
+                # Write the modified line to the temp file
+                printf "%s\n" "$modified_line" >> "$temp_file"
                 ;;
             *)
                 printf "%s\n" "$line" >> "$temp_file"
@@ -47,7 +54,7 @@ replace_comment() {
     done < "$target_file"
 
     mv "$temp_file" "$target_file"
-    printf "Replaced or appended to \"<!-- %s -->\" in %s\n" "$comment" "$target_file"
+    printf "Replaced or appended to \"<!-- %s -->\" in %s\n" "$content" "$target_file"
 }
 
 get_git_info() {
@@ -180,7 +187,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
                 [ -e "$md" ] || continue
                 converted_md=$(pandoc "$md")
                 # Replace or append the converted markdown content after the <!-- markdown --> comment
-                replace_comment "$BUILD_DIR/$file_name" "MARKDOWN" "$converted_md" "true"
+                replace "$BUILD_DIR/$file_name" "MARKDOWN" "$converted_md" "true"
                 printf "Markdown file %s successfully converted to HTML using pandoc and aggregated into %s\n" "$md" "$BUILD_DIR/$file_name"
             done
         }
@@ -196,7 +203,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
                 stylesheet="<link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">"
 
                 # Replace the placeholder in the HTML file
-                replace_comment "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true"
+                replace "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true"
 
                 # Log the aggregation process
                 printf "Aggregated CSS files into %s\n" "$BUILD_DIR/$file_wext.css"
@@ -234,7 +241,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
 
             # Replace the placeholder in the file
             printf "Replacing placeholder/key \"%s\" with value => \"%s\" in %s\n" "$key" "$val" "$file_name"
-            replace_placeholder "$key" "$val" "$BUILD_DIR/$file_name"
+            replace "$BUILD_DIR/$file_name" "$key" "$val" "false"
         done
 
         # Link file to index.html if link_index is true and file_name is not index.html
@@ -243,8 +250,8 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             # shellcheck disable=SC2154
             post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>"
 
-            # Use replace_comment to append the post content after the <!-- POSTS --> comment in index.html
-            replace_comment "$BUILD_DIR/index.html" "POSTS" "$post_content" "true"
+            # Use replace to append the post content after the <!-- POSTS --> comment in index.html
+            replace "$BUILD_DIR/index.html" "POSTS" "$post_content" "true"
             printf "File linked in index.html => %s\n" "$site_url/$file_name"
         }
 
@@ -253,8 +260,8 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
             # Prepare the content to append to the <!-- POSTS --> comment in rss.xml
             rss_content="<item><title>$title</title><guid>$site_url/$file_name</guid><pubDate>$date_created</pubDate><link>$site_url/$file_name</link><description>${description:-""}</description></item>"
 
-            # Use replace_comment to append the rss content after the <!-- POSTS --> comment in rss.xml
-            replace_comment "$BUILD_DIR/rss.xml" "POSTS" "$rss_content" "true"
+            # Use replace to append the rss content after the <!-- POSTS --> comment in rss.xml
+            replace "$BUILD_DIR/rss.xml" "POSTS" "$rss_content" "true"
             printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
         }
 
@@ -266,7 +273,7 @@ done
 get_git_info "."
 
 # Replace comment in index.html with commit info
-replace_comment "$BUILD_DIR/index.html" "GIT" "$(printf "%s" "$all_commits" | head -n "$COMMITS_NUM")" "true"
+replace "$BUILD_DIR/index.html" "GIT" "$(printf "%s" "$all_commits" | head -n "$COMMITS_NUM")" "true"
 
 # Copy CSS and images
 cp "$CSS_FILE" "$BUILD_DIR"
