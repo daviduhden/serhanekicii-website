@@ -251,7 +251,7 @@ for file in $(printf "%s" "$to_build" | sed '/^$/d'); do
         # Link file to rss.xml if link_rss is set to true
         [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] && {
             # Prepare the content to append to the <!-- POSTS --> comment in rss.xml
-            rss_content="<item>\n<title>$title</title>\n<guid>$site_url/$file_name</guid>\n<pubDate>$date_created</pubDate>\n<link>$site_url/$file_name</link>\n<description>${description:-""}</description>\n</item>"
+            rss_content="<item><title>$title</title><guid>$site_url/$file_name</guid><pubDate>$date_created</pubDate><link>$site_url/$file_name</link><description>${description:-""}</description></item>"
 
             # Use replace_comment to append the rss content after the <!-- POSTS --> comment in rss.xml
             replace_comment "$BUILD_DIR/rss.xml" "POSTS" "$rss_content" "true"
