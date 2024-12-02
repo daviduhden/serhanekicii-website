@@ -21,13 +21,13 @@ This ~300-line POSIX-compliant shell script is a flexible static site generator 
 
 - **Markdown Injection**:
 
-  - Converts Markdown files to HTML using `pandoc` and injects the output into specified placeholders within HTML templates.
+  - Converts Markdown files to HTML using `cmark-gfm` and injects the output into specified placeholders within HTML templates.
   - Enables the combination of simple Markdown content with HTML.
 
 - **Support for Modular Files**:
 
   - Modular content can be split into multiple files (e.g., `0.md`, `0.html`) and processed sequentially.
-  - Markdown files are converted to HTML using `pandoc`, and prebuilt HTML files are appended directly, allowing for highly customizable page structures.
+  - Markdown files are converted to HTML using `cmark-gfm`, and prebuilt HTML files are appended directly, allowing for highly customizable page structures.
 
 - **Automatic Index and RSS Generation**:
   - Automatically links generated pages in an `index.html` file.

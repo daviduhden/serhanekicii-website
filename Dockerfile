@@ -3,7 +3,7 @@ FROM debian:bullseye AS builder
 
 # Install necessary dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl git jq nodejs npm pandoc && \
+    apt-get install -y --no-install-recommends curl git jq nodejs npm cmark-gfm && \
     rm -rf /var/lib/apt/lists/*
 
 # Set the working directory

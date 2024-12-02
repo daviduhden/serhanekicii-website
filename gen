@@ -32,7 +32,7 @@ extract_placeholders() {
     printf "%s" "$placeholders" | tr ' ' '\n' | sort | uniq
 }
 
-# Function to replace or append <!-- %s --> comments and ${x} placeholdes, without sed.
+# Function to replace or append <!-- %s --> comments and ${x} placeholdesrs.
 replace() {
     target_file="$1"
     content="$2"
@@ -145,7 +145,7 @@ check_var() {
 }
 
 # List of required commands
-required_commands="pandoc curl git realpath"
+required_commands="cmark-gfm git realpath"
 
 # Dynamically check each command
 for cmd in $required_commands; do
@@ -218,10 +218,10 @@ printf "%s" "$to_build" | while IFS= read -r file; do
         [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] && {
             for md in "$file"/*.md; do
                 [ -e "$md" ] || continue
-                converted_md=$(pandoc "$md")
+                converted_md=$(cmark-gfm --extension table "$md")
                 # Replace or append the converted markdown content after the <!-- markdown --> comment
                 replace "$BUILD_DIR/$file_name" "MARKDOWN" "$converted_md" "true"
-                printf "Markdown file %s successfully converted to HTML using pandoc and aggregated into %s\n" "$md" "$BUILD_DIR/$file_name"
+                printf "Markdown file %s successfully converted to HTML using cmark-gfm and aggregated into %s\n" "$md" "$BUILD_DIR/$file_name"
             done
         }
 
