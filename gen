@@ -161,10 +161,10 @@ process_file() {
     file_wext=${file_name%.*}
 
     # Check if file is a directory
-    if [ ! -d "$file" ]; then
+    [ -d "$file" ] || {
         printf "ERROR: %s doesn't exist.\n" "$file"
         return 1
-    fi
+    }
 
     touch "$BUILD_DIR/$file_name"
 
@@ -174,73 +174,52 @@ process_file() {
     [ -f "$file/conf" ] && . "$file/conf"
 
     # Write default header if applicable
-    if [ "$file_ext" = "html" ]; then
-        # shellcheck disable=SC2154
-        if [ "$add_header" != "false" ] && [ -f "$default_header" ]; then
-            cat "$(posix_realpath "$default_header")" >> "$BUILD_DIR/$file_name"
-        else
-            printf "ERROR: The default header file '%s' does not exist. Exiting.\n" "$default_header"
-            return 1
-        fi
-    fi
+    # shellcheck disable=SC2015,SC2154
+    [ "$file_ext" = "html" ] && [ "$add_header" != "false" ] && [ -f "$default_header" ] \
+        && cat "$(posix_realpath "$default_header")" >> "$BUILD_DIR/$file_name" \
+        || { [ "$file_ext" = "html" ] && [ "$add_header" != "false" ] \
+            && printf "ERROR: The default header file '%s' does not exist. Exiting.\n" "$default_header" && return 1; }
 
     # Write extension files if they exist
     for ext_file in "$file"/*."$file_ext"; do
-        [ -e "$ext_file" ] || continue
-        printf "Appending content from %s to %s\n" "$ext_file" "$BUILD_DIR/$file_name"
-        cat "$ext_file" >> "$BUILD_DIR/$file_name" 2> /dev/null || printf "WARNING: No such file %s found\n" "$ext_file"
+        [ -e "$ext_file" ] \
+            && printf "Appending content from %s to %s\n" "$ext_file" "$BUILD_DIR/$file_name" \
+            && cat "$ext_file" >> "$BUILD_DIR/$file_name" 2> /dev/null \
+            || printf "WARNING: No such file %s found\n" "$ext_file"
     done
 
     # Convert markdown to html if applicable
-    if [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ]; then
-        for md in "$file"/*.md; do
-            [ -e "$md" ] || continue
-            converted_md=$(cmark-gfm --extension table "$md")
-            # Replace or append the converted markdown content after the <!-- MARKDOWN --> comment
-            replace "$BUILD_DIR/$file_name" "MARKDOWN" "$converted_md" "true"
-            printf "Markdown file %s successfully converted to HTML using cmark-gfm and aggregated into %s\n" "$md" "$BUILD_DIR/$file_name"
+    [ "$file_ext" = "html" ] && [ -n "$is_markdown" ] && [ "$is_markdown" = "true" ] \
+        && for md in "$file"/*.md; do
+            [ -e "$md" ] \
+                && converted_md=$(cmark-gfm --extension table "$md") \
+                && replace "$BUILD_DIR/$file_name" "MARKDOWN" "$converted_md" "true" \
+                && printf "Markdown file %s successfully converted to HTML using cmark-gfm and aggregated into %s\n" "$md" "$BUILD_DIR/$file_name"
         done
-    fi
 
     # Aggregate CSS files
-    if [ "$file_ext" = "html" ]; then
-        ls "$file"/*.css > /dev/null 2>&1 && cat "$file"/*.css >> "$BUILD_DIR/$file_wext.css"
-
-        # Generate the <link> tag for inclusion in the HTML
-        stylesheet="<link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">"
-
-        # Replace the placeholder in the HTML file
-        replace "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true"
-
-        # Log the aggregation process
-        printf "Aggregated CSS files into %s\n" "$BUILD_DIR/$file_wext.css"
-    fi
+    [ "$file_ext" = "html" ] && ls "$file"/*.css > /dev/null 2>&1 \
+        && cat "$file"/*.css >> "$BUILD_DIR/$file_wext.css" \
+        && stylesheet="<link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">" \
+        && replace "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true" \
+        && printf "Aggregated CSS files into %s\n" "$BUILD_DIR/$file_wext.css"
 
     # Link file to index.html if link_index is true and file_name is not index.html
-    [ "$file_name" != "index.html" ] && [ "$link_index" = "true" ] && {
-        # Prepare the content to append to the <!-- POSTS --> comment in index.html
-        # shellcheck disable=SC2154
-        post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>"
-
-        # Use replace to append the post content after the <!-- POSTS --> comment in index.html
-        replace "$BUILD_DIR/index.html" "POSTS" "$post_content" "true"
-        printf "File linked in index.html => %s\n" "$site_url/$file_name"
-    }
+    # shellcheck disable=SC2154
+    [ "$file_name" != "index.html" ] && [ "$link_index" = "true" ] \
+        && post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" \
+        && replace "$BUILD_DIR/index.html" "POSTS" "$post_content" "true" \
+        && printf "File linked in index.html => %s\n" "$site_url/$file_name"
 
     # Link file to rss.xml if link_rss is set to true
-    [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] && {
-        # Prepare the content to append to the <!-- POSTS --> comment in rss.xml
-        rss_content="<item><title>$title</title><guid>$site_url/$file_name</guid><pubDate>$date_created</pubDate><link>$site_url/$file_name</link><description>${description:-""}</description></item>"
-
-        # Use replace to append the rss content after the <!-- POSTS --> comment in rss.xml
-        replace "$BUILD_DIR/rss.xml" "POSTS" "$rss_content" "true"
-        printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
-    }
+    [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] \
+        && rss_content="<item><title>$title</title><guid>$site_url/$file_name</guid><pubDate>$date_created</pubDate><link>$site_url/$file_name</link><description>${description:-""}</description></item>" \
+        && replace "$BUILD_DIR/rss.xml" "POSTS" "$rss_content" "true" \
+        && printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
 
     # Write default footer if applicable
-    if [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; }; then
-        cat "$(posix_realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
-    fi
+    [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; } \
+        && cat "$(posix_realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
 
     # Extract and process placeholders
     placeholders=$(extract_placeholders "$BUILD_DIR/$file_name")
@@ -253,45 +232,35 @@ process_file() {
 
         # Handle git-derived values or warn about undefined placeholders
         case "$key" in
-            # If not set explicitly, get from Git metadata
             date_created | date_updated)
-                if [ -z "$val" ]; then
-                    if [ "$key" = "date_created" ]; then
-                        val="$git_creation_date"
-                        log_msg="creation date"
-                    else
-                        val="$git_modification_date"
-                        log_msg="modification date"
-                    fi
+                [ -n "$val" ] || {
+                    [ "$key" = "date_created" ] && val="$git_creation_date" && log_msg="creation date" \
+                        || val="$git_modification_date" && log_msg="modification date"
                     printf "Replacing placeholder/key \"%s\" with git-derived %s => \"%s\" in %s (value not available in config to override)\n" "$key" "$log_msg" "$val" "$file_name"
-                fi
+                }
                 ;;
             *)
-                if [ -z "$val" ]; then
-                    printf "WARNING: Placeholder \"%s\" has no value.\n" "$key"
-                fi
+                [ -n "$val" ] || printf "WARNING: Placeholder \"%s\" has no value.\n" "$key"
                 ;;
         esac
 
         # Replace the placeholder in the file
+        replace "$BUILD_DIR/$file_name" "$key" "${val:-}" "false"
         printf "Replacing placeholder/key \"%s\" with value => \"%s\" in %s\n" "$key" "$val" "$file_name"
-        replace "$BUILD_DIR/$file_name" "$key" "$val" "false"
     done
 
     # Prepare shared resource updates
-    if [ "$file_name" != "index.html" ]; then
-        if [ "$link_index" = "true" ]; then
-            post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>"
-            echo "$post_content" >> "$BUILD_DIR/posts_updates.txt"
-            printf "File linked in index.html => %s\n" "$site_url/$file_name"
-        fi
+    [ "$file_name" != "index.html" ] && {
+        [ "$link_index" = "true" ] \
+            && post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" \
+            && echo "$post_content" >> "$BUILD_DIR/posts_updates.txt" \
+            && printf "File linked in index.html => %s\n" "$site_url/$file_name"
 
-        if [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ]; then
-            rss_content="<item><title>$title</title><guid>$site_url/$file_name</guid><pubDate>$date_created</pubDate><link>$site_url/$file_name</link><description>${description:-""}</description></item>"
-            echo "$rss_content" >> "$BUILD_DIR/rss_updates.txt"
-            printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
-        fi
-    fi
+        [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] \
+            && rss_content="<item><title>$title</title><guid>$site_url/$file_name</guid><pubDate>$date_created</pubDate><link>$site_url/$file_name</link><description>${description:-""}</description></item>" \
+            && echo "$rss_content" >> "$BUILD_DIR/rss_updates.txt" \
+            && printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
+    }
 
     printf "Finished generating %s\n\n" "$BUILD_DIR/$file_name"
 }
@@ -325,11 +294,7 @@ mkdir -p "$BUILD_DIR"
 
 printf "%s" "$to_build" | while IFS= read -r file; do
     # Skip empty lines
-    [ -n "$file" ] || continue
-    # TODO: There is an opportunity to implement parallelism here.
-    ( # Subshell to maintain file-specific variables.
-        process_file "$file"
-    ) # Subshell to maintain file-specific variables.
+    [ -n "$file" ] && process_file "$file"
 done
 
 # This will get info for the whole repository.
