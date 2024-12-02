@@ -174,11 +174,15 @@ process_file() {
     [ -f "$file/conf" ] && . "$file/conf"
 
     # Write default header if applicable
-    # shellcheck disable=SC2015,SC2154
-    [ "$file_ext" = "html" ] && [ "$add_header" != "false" ] && [ -f "$default_header" ] \
-        && cat "$(posix_realpath "$default_header")" >> "$BUILD_DIR/$file_name" \
-        || { [ "$file_ext" = "html" ] && [ "$add_header" != "false" ] \
-            && printf "ERROR: The default header file '%s' does not exist. Exiting.\n" "$default_header" && return 1; }
+    # shellcheck disable=SC2154
+    if [ "$file_ext" = "html" ] && [ "$add_header" != "false" ]; then
+        if [ -f "$default_header" ]; then
+            cat "$(posix_realpath "$default_header")" >> "$BUILD_DIR/$file_name"
+        else
+            printf "ERROR: The default header file '%s' does not exist. Exiting.\n" "$default_header"
+            return 1
+        fi
+    fi
 
     # Write extension files if they exist
     for ext_file in "$file"/*."$file_ext"; do
@@ -274,12 +278,13 @@ for cmd in $required_commands; do
 done
 
 CONF_FILE=./conf
-# shellcheck source=./conf
-# shellcheck disable=SC2015
-[ -f "$CONF_FILE" ] && . "$CONF_FILE" || {
+if [ -f "$CONF_FILE" ]; then
+    # shellcheck source=./conf
+    . "$CONF_FILE"
+else
     printf "ERROR: Configuration file (%s) not found. Exiting.\n" "$CONF_FILE"
     exit 1
-}
+fi
 
 # List of required variables
 required_vars="BUILD_DIR CSS_FILE PICS_DIR GITHUB_REPO GITHUB_USER to_build default_header default_footer"
