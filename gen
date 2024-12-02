@@ -1,6 +1,15 @@
 #!/bin/sh
 # shellcheck disable=SC2031
 
+# Note: This does not resolve symlinks
+posix_realpath() {
+    [ -z "$1" ] && return 1 # Check if input is provided
+    (
+        cd "$(dirname "$1")" || exit 1 # Change to the directory of the input
+        echo "$PWD/$(basename "$1")"   # Combine the absolute path with the basename
+    )
+}
+
 extract_placeholders() {
     target_file="$1"
     placeholders=""
@@ -146,8 +155,7 @@ check_var() {
 
 process_file() {
     file="$1"
-
-    file=$(realpath "$file")
+    file=$(posix_realpath "$file")
     file_name=$(basename "$file")
     file_ext="${file_name##*.}"
     file_wext=${file_name%.*}
@@ -169,7 +177,7 @@ process_file() {
     if [ "$file_ext" = "html" ]; then
         # shellcheck disable=SC2154
         if [ "$add_header" != "false" ] && [ -f "$default_header" ]; then
-            cat "$(realpath "$default_header")" >> "$BUILD_DIR/$file_name"
+            cat "$(posix_realpath "$default_header")" >> "$BUILD_DIR/$file_name"
         else
             printf "ERROR: The default header file '%s' does not exist. Exiting.\n" "$default_header"
             return 1
@@ -235,7 +243,7 @@ process_file() {
 
     # Write default footer if applicable
     if [ "$file_ext" = "html" ] && { [ -z "$add_footer" ] || [ "$add_footer" = "true" ]; }; then
-        cat "$(realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
+        cat "$(posix_realpath "$default_footer")" >> "$BUILD_DIR/$file_name"
     fi
 
     # Extract and process placeholders
@@ -293,7 +301,7 @@ process_file() {
 }
 
 # List of required commands
-required_commands="cmark-gfm git realpath"
+required_commands="cmark-gfm git"
 
 # Dynamically check each command
 for cmd in $required_commands; do
