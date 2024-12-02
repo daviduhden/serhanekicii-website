@@ -11,10 +11,10 @@ replace_placeholder() {
     REPLACE=$(printf "%s" "$REPLACE" | tr '\n' '\\n')
 
     # Ensure REPLACE is not empty
-    if [ -z "$REPLACE" ]; then
+    [ -z "$REPLACE" ] && {
         printf "Skipping replacement for placeholder \"%s\" because the replacement value is empty or invalid.\n" "$1"
         return
-    fi
+    }
 
     # Use a harmless backup extension (e.g., .bak) to ensure compatibility with both BSD and GNU sed
     sed -i.bak "s${DELIM}\${$1}${DELIM}${REPLACE}${DELIM}g" "$BUILD_DIR/$file_name"
@@ -33,21 +33,14 @@ replace_comment() {
     temp_file=$(mktemp)
 
     while IFS= read -r line; do
-        # shellcheck disable=SC2015
         echo "$line" | grep -q "<!-- $comment -->" && {
-            if [ "$append" = "true" ]; then
-                echo "$line" >> "$temp_file"
-                echo "$replacement" >> "$temp_file"
-            else
-                echo "$replacement" >> "$temp_file"
-            fi
-        } || {
             echo "$line" >> "$temp_file"
-        }
+            [ "$append" = "true" ] && echo "$replacement" >> "$temp_file" || echo "$replacement" > /dev/null
+        } || echo "$line" >> "$temp_file"
     done < "$target_file"
 
     mv "$temp_file" "$target_file"
-    printf "Replaced or appended to \"<!-- %s -->\" in %s\n" "$comment" "$file"
+    printf "Replaced or appended to \"<!-- %s -->\" in %s\n" "$comment" "$target_file"
 }
 
 get_git_info() {
@@ -100,11 +93,11 @@ check_var() {
     # Use eval to fetch the value of the variable dynamically
     eval var_value=\$"$var_name"
 
-    # Check if the variable is empty
-    if [ -z "$var_value" ]; then
+    # Exit with an error message if the variable is empty
+    [ -n "$var_value" ] || {
         printf "ERROR: The '%s' variable is not set or is empty. Exiting.\n" "$var_name"
         exit 1
-    fi
+    }
 }
 
 # List of required commands
