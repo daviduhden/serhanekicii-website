@@ -204,20 +204,16 @@ process_file() {
 
     # Aggregate CSS files
     if [ "$file_ext" = "html" ]; then
-        for css in "$file"/*.css; do
-            [ -e "$css" ] || continue
-            # Concatenate all .css files into the target CSS file
-            cat "$css" >> "$BUILD_DIR/$file_wext.css"
+        ls "$file"/*.css > /dev/null 2>&1 && cat "$file"/*.css >> "$BUILD_DIR/$file_wext.css"
 
-            # Generate the <link> tag for inclusion in the HTML
-            stylesheet="<link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">"
+        # Generate the <link> tag for inclusion in the HTML
+        stylesheet="<link rel=\"stylesheet\" type=\"text/css\" href=\"$file_wext.css\">"
 
-            # Replace the placeholder in the HTML file
-            replace "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true"
+        # Replace the placeholder in the HTML file
+        replace "$BUILD_DIR/$file_name" "HEAD" "$stylesheet" "true"
 
-            # Log the aggregation process
-            printf "Aggregated CSS files into %s\n" "$BUILD_DIR/$file_wext.css"
-        done
+        # Log the aggregation process
+        printf "Aggregated CSS files into %s\n" "$BUILD_DIR/$file_wext.css"
     fi
 
     # Link file to index.html if link_index is true and file_name is not index.html

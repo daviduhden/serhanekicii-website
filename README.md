@@ -59,3 +59,9 @@ chmod +x ./gen
 ```
 ./gen
 ```
+
+## TODO
+
+- Unified logging.
+- Parallelism maybe?
+- Cache git metadata instead of invoking `git log` multiple times.
