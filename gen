@@ -4,8 +4,8 @@
 posix_realpath() {
     [ -z "$1" ] && return 1 # Check if input is provided
     (
-        cd "$(dirname "$1")" || exit 1 # Change to the directory of the input
-        echo "$PWD/$(basename "$1")"   # Combine the absolute path with the basename
+        cd "$(dirname "$1")" || exit 1        # Change to the directory of the input
+        printf "%s\n" "$PWD/$(basename "$1")" # Combine the absolute path with the basename
     )
 }
 
@@ -253,12 +253,12 @@ process_file() {
     [ "$file_name" != "index.html" ] && {
         [ "$link_index" = "true" ] \
             && post_content="<li><time datetime=\"$date_created\">$date_created</time> &ndash; <a href=\"$file_name\">$title</a></li>" \
-            && echo "$post_content" >> "$BUILD_DIR/posts_updates.txt" \
+            && printf "%s\n" "$post_content" >> "$BUILD_DIR/posts_updates.txt" \
             && printf "File linked in index.html => %s\n" "$site_url/$file_name"
 
         [ "$file_name" != "rss.xml" ] && [ "$link_rss" = "true" ] \
             && rss_content="<item><title>$title</title><guid>$site_url/$file_name</guid><pubDate>$date_created</pubDate><link>$site_url/$file_name</link><description>${description:-""}</description></item>" \
-            && echo "$rss_content" >> "$BUILD_DIR/rss_updates.txt" \
+            && printf "%s\n" "$rss_content" >> "$BUILD_DIR/rss_updates.txt" \
             && printf "File linked in RSS feed => %s\n" "$site_url/$file_name"
     }
 
