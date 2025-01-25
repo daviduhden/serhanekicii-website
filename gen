@@ -100,7 +100,7 @@ get_git_info() {
     target="$1"
 
     # Get git logs for the target
-    git_info=$(git log --format='%ad|%h|%an|%s' --date=rfc -- "$target")
+    git_info=$(git log --format='%ad|%h|%an|%s' --date=format-local:'%a, %d %b %Y %H:%M:%S %z' -- "$target")
 
     git_creation_info=$(printf "%s" "$git_info" | tail -n 1)
     git_modification_info=$(printf "%s" "$git_info" | head -n 1)
